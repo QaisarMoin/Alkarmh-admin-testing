@@ -137,6 +137,13 @@ const LoginPage = () => {
           >
             Sign up
           </Link>
+          {' '}or{' '}
+          <Link
+            to="/worker-signup"
+            className="font-medium text-primary-600 hover:text-primary-500"
+          >
+            Register as Worker
+          </Link>
         </p>
       </div>
       <ForgotPasswordModal isOpen={showForgotModal} onClose={() => setShowForgotModal(false)} />

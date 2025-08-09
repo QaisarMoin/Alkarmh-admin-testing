@@ -107,25 +107,28 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
   // If a category was created in this session, treat as hasCategory for unlock logic
   const unlockAllTabs = hasCategory || categoryCreatedThisSession;
 
-  let menuItems = [
-    ...((!currentUser || currentUser.role !== 'super_admin') ? [
+  let menuItems = [];
+  
+  // Menu items for shop admin, customer, and worker (workers have read-only access)
+  if (!currentUser || currentUser.role !== 'super_admin') {
+    menuItems = [
       {
         name: 'Dashboard',
         icon: <FiHome className="w-5 h-5" />,
         path: '/',
         exact: true
       },
-     
       {
         name: 'All Products',
         icon: <FiShoppingBag className="w-5 h-5" />,
         path: '/products'
       },
-      {
+      // Only show Add Product for non-workers
+      ...(currentUser?.role !== 'worker' ? [{
         name: 'Add Product',
         icon: <IoBagAddOutline className="w-5 h-5" />,
         path: '/products/add'
-      },
+      }] : []),
       {
         name: 'Categories',
         icon: <MdOutlineCategory className="w-5 h-5" />,
@@ -136,22 +139,21 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         icon: <FiPackage className="w-5 h-5" />,
         path: '/orders'
       },
-    ] : []),
-   
-   
-    ...(!currentUser || currentUser.role !== 'super_admin' ? [
-      {
+      // Only show Settings for non-workers
+      ...(currentUser?.role !== 'worker' ? [{
         name: 'Settings',
-        icon: <FiSettings className="w-5 h-5" />,
+        icon: <FiSettings className="w-5 h-5" />, 
         path: '/settings'
       },
-      // {
-      //   name: 'Help',
-      //   icon: <FiHelpCircle className="w-5 h-5" />,
-      //   path: '/help'
-      // }
-    ] : [])
-  ]
+      // Add Workers tab for shop admins
+      ...(currentUser?.role === 'shop_admin' ? [{
+        name: 'Workers',
+        icon: <FiUsers className="w-5 h-5" />, 
+        path: '/workers'
+      }] : [])
+      ] : [])
+    ];
+  }
 
   const sidebarItems = [
     ...menuItems,
@@ -243,7 +245,28 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
                     </li>
                   );
                 }
-                // For non-super_admin, apply lock logic
+                
+                // For workers, show all tabs but without read-only indicator
+                if (currentUser?.role === 'worker') {
+                  return (
+                    <li key={index}>
+                      <NavLink
+                        to={item.path}
+                        {...(item.name === 'All Products' ? { end: true } : {})}
+                        className={({ isActive }) =>
+                          `flex items-center px-4 py-2.5 transition-colors duration-200 hover:bg-gray-100 ${
+                            isActive ? 'text-primary-600 font-medium' : 'text-gray-700'
+                          }`
+                        }
+                        onClick={() => isMobile && setIsOpen(false)}
+                      >
+                        {item.icon}
+                        {isOpen && <span className="ml-3">{item.name}</span>}
+                      </NavLink>
+                    </li>
+                  );
+                }
+                // For shop_admin and customer, apply lock logic
                 let isLocked = false;
                 if (isCustomerNoShop && !['Settings', 'Help'].includes(item.name)) {
                   isLocked = true;

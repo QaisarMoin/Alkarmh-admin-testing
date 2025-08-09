@@ -41,6 +41,9 @@ const Dashboard = () => {
   const [salesRange, setSalesRange] = useState('Last 7 days')
   const [retryCount, setRetryCount] = useState(0)
   const navigate = useNavigate();
+  
+  // Check if user is a worker (read-only access)
+  const isWorker = currentUser?.role === 'worker';
 
   // Helper function to get display name from multilingual object
   const getDisplayName = (name) => {
@@ -63,13 +66,26 @@ const Dashboard = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const shopId =
-          (currentUser?.managedShops?.[0] && currentUser.managedShops[0]._id) ||
-          currentUser?.managedShops?.[0] ||
-          (Array.isArray(currentUser?.managedShop) ? currentUser.managedShop[0] : null);
+        let shopId;
+        
+        // For workers, use assignedShop
+        if (currentUser?.role === 'worker') {
+          shopId = currentUser?.assignedShop?._id || currentUser?.assignedShop;
+        } else {
+          // For shop admins, use managedShops
+          shopId =
+            (currentUser?.managedShops?.[0] && currentUser.managedShops[0]._id) ||
+            currentUser?.managedShops?.[0] ||
+            (Array.isArray(currentUser?.managedShop) ? currentUser.managedShop[0] : null);
+        }
+        
         if (!shopId) {
-          navigate('/settings', { replace: true });
-          setError('No shop found for this user.');
+          if (currentUser?.role === 'worker') {
+            setError('No shop assigned to this worker.');
+          } else {
+            navigate('/settings', { replace: true });
+            setError('No shop found for this user.');
+          }
           setIsLoading(false);
           return;
         }
@@ -78,17 +94,30 @@ const Dashboard = () => {
           api.get("/api/products"),
           api.get("/api/orders")
         ]);
-        const allProducts = productsResponse.data || productsResponse;
-        const shopProducts = allProducts.filter(product => {
-          if (!product.createdBy) return false;
-          if (typeof product.createdBy === 'string') {
-            return product.createdBy === currentUser._id;
-          }
-          if (typeof product.createdBy === 'object' && product.createdBy._id) {
-            return product.createdBy._id === currentUser._id;
-          }
-          return false;
-        });
+        
+        let shopProducts;
+        
+        if (isWorker) {
+          // For workers, show all products from their assigned shop
+          const allProducts = productsResponse.data || productsResponse;
+          shopProducts = allProducts.filter(product => {
+            return product.shop === shopId || product.shop?._id === shopId;
+          });
+        } else {
+          // For shop admins, show products they created
+          const allProducts = productsResponse.data || productsResponse;
+          shopProducts = allProducts.filter(product => {
+            if (!product.createdBy) return false;
+            if (typeof product.createdBy === 'string') {
+              return product.createdBy === currentUser._id;
+            }
+            if (typeof product.createdBy === 'object' && product.createdBy._id) {
+              return product.createdBy._id === currentUser._id;
+            }
+            return false;
+          });
+        }
+        
         setProducts(shopProducts);
         const allOrders = ordersResponse.data || ordersResponse;
         const shopOrders = allOrders.filter(order => {

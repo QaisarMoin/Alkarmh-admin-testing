@@ -13,8 +13,10 @@ import EmptyState from '../../components/ui/EmptyState'
 import { toast } from 'react-toastify'
 import * as api from '../../utils/api'
 import EditProductModal from '../../components/EditProductModal'
+import { useAuth } from '../../contexts/AuthContext'
 
 const ProductList = () => {
+  const { user: currentUser } = useAuth()
   const [products, setProducts] = useState([])
   const [filteredProducts, setFilteredProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -34,40 +36,47 @@ const ProductList = () => {
   });
   const [currentPage, setCurrentPage] = useState(1)
   const PRODUCTS_PER_PAGE = 10
+  
+  // Check if user is a worker (read-only access)
+  const isWorker = currentUser?.role === 'worker';
 
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true);
       setError(null);
-      console.log( "Qaisar ");
       try {
         const response = await api.get('/api/products');
-        console.log(response , "Qaisar ");
         
-        // Only allow products where createdBy matches the current admin's user id, and ignore shop matching
-        const adminId = user?._id || user?.id;
-        if (
-          response &&
-          response.success &&
-          Array.isArray(response.data) &&
-          response.data.length > 0 &&
-          adminId
-        ) {
-          // Filter products to only those created by the current admin (no shop match)
-          const adminProducts = response.data.filter((product) => {
-            // createdBy can be string or object
-            if (!product.createdBy) return false;
-            if (typeof product.createdBy === 'string') {
-              return product.createdBy === adminId;
+        if (response && response.success && Array.isArray(response.data)) {
+          let filteredProducts = [];
+          
+          if (isWorker) {
+            // For workers, show products from their assigned shop
+            const shopId = currentUser?.assignedShop?._id || currentUser?.assignedShop;
+            if (shopId) {
+              filteredProducts = response.data.filter((product) => {
+                return product.shop === shopId || product.shop?._id === shopId;
+              });
             }
-            if (typeof product.createdBy === 'object' && product.createdBy._id) {
-              return product.createdBy._id === adminId;
+          } else {
+            // For shop admins, show products they created
+            const adminId = user?._id || user?.id;
+            if (adminId) {
+              filteredProducts = response.data.filter((product) => {
+                if (!product.createdBy) return false;
+                if (typeof product.createdBy === 'string') {
+                  return product.createdBy === adminId;
+                }
+                if (typeof product.createdBy === 'object' && product.createdBy._id) {
+                  return product.createdBy._id === adminId;
+                }
+                return false;
+              });
             }
-            return false;
-          });
-          console.log('Fetched products for admin (no shop match):', adminProducts);
-          setProducts(adminProducts);
-          setFilteredProducts(adminProducts);
+          }
+          
+          setProducts(filteredProducts);
+          setFilteredProducts(filteredProducts);
         } else {
           setProducts([]);
           setFilteredProducts([]);
@@ -83,7 +92,7 @@ const ProductList = () => {
       }
     };
     fetchProducts();
-  }, []);
+  }, [currentUser, isWorker, user]);
 
   useEffect(() => {
     if (editingProduct) {
@@ -252,21 +261,23 @@ const ProductList = () => {
   return (
     <div>
       <PageHeader 
-        title="Products"
+        title="All Products"
         subtitle="Manage your product inventory"
         breadcrumbs={[
           { text: 'Dashboard', link: '/' },
           { text: 'Products' }
         ]}
         actionButton={
-          <Link to="/products/add" className="btn btn-primary inline-flex items-center">
-            <FiPlus className="mr-2 h-5 w-5" />
-            Add Product
-          </Link>
+          !isWorker && (
+            <Link to="/products/add" className="btn btn-primary inline-flex items-center">
+              <FiPlus className="mr-2 h-5 w-5" />
+              Add Product
+            </Link>
+          )
         }
       />
       
-      {/* Search & Filters */}
+      {/* Filters and Search */}
       <div className="card mb-6">
         <SearchFilter 
           onSearch={handleSearch}
@@ -307,7 +318,7 @@ const ProductList = () => {
                   <th className="px-4 py-3 text-right">Price (QAR)</th>
                   <th className="px-4 py-3 text-center">Stock</th>
                   <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  {!isWorker && <th className="px-4 py-3 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -378,22 +389,24 @@ const ProductList = () => {
                         )}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-1">
-                        <button
-                          onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
-                          className="text-gray-600 hover:text-primary-600 p-1"
-                        >
-                          <FiEdit2 className="h-5 w-5" />
-                        </button>
-                        <button 
-                          onClick={() => { setDeletingProduct(product); setIsDeleteModalOpen(true); }} 
-                          className="text-gray-600 hover:text-error-500 p-1"
-                        >
-                          <FiTrash2 className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </td>
+                    {!isWorker && (
+                      <td className="px-4 py-4 text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-1">
+                          <button
+                            onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
+                            className="text-gray-600 hover:text-primary-600 p-1"
+                          >
+                            <FiEdit2 className="h-5 w-5" />
+                          </button>
+                          <button 
+                            onClick={() => { setDeletingProduct(product); setIsDeleteModalOpen(true); }} 
+                            className="text-gray-600 hover:text-error-500 p-1"
+                          >
+                            <FiTrash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -429,8 +442,8 @@ const ProductList = () => {
         )}
       </div>
 
-      {/* Render a placeholder modal for editing */}
-      {isEditModalOpen && editingProduct && (
+      {/* Render a placeholder modal for editing - Only for non-workers */}
+      {!isWorker && isEditModalOpen && editingProduct && (
         <EditProductModal
           productId={editingProduct._id || editingProduct.id}
           categories={categories.filter(cat => cat.createdBy === user?._id)}
@@ -439,8 +452,8 @@ const ProductList = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && deletingProduct && (
+      {/* Delete Confirmation Modal - Only for non-workers */}
+      {!isWorker && isDeleteModalOpen && deletingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
             <div className="flex items-center mb-4">

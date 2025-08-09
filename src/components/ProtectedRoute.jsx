@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const ProtectedRoute = ({ children, requiredRole }) => {
+const ProtectedRoute = ({ children, requiredRole, render }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
@@ -29,6 +29,11 @@ const ProtectedRoute = ({ children, requiredRole }) => {
       return <Navigate to="/" replace />;
     }
   }
+  
+  // Allow workers to access all routes except super admin routes
+  if (user?.role === 'worker' && location.pathname.startsWith('/super')) {
+    return <Navigate to="/" replace />;
+  }
 
   // Redirect customer to settings if not already there and has no shop
   if (
@@ -48,6 +53,10 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to="/settings" replace />;
   }
 
+  if (render) {
+    return render({ user, isAuthenticated });
+  }
+  
   return children ? children : <Outlet />;
 };
 

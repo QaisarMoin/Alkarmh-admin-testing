@@ -23,10 +23,20 @@ const Categories = () => {
     setCategoryCreatedThisSession(true);
   };
   const [categoryEvent, setCategoryEvent] = useState(0);
+  
+  // Check if user is a worker (read-only access)
+  // const isWorker = currentUser?.role === 'worker';
 
   const fetchCategories = async (searchValue = search, pageValue = page) => {
     setLoading(true);
     let query = `/api/categories?page=${pageValue}&limit=${limit}`;
+    
+    // For workers, add shop filter
+    if (isWorker && currentUser?.assignedShop) {
+      const shopId = currentUser?.assignedShop?._id || currentUser?.assignedShop;
+      query += `&shop=${shopId}`;
+    }
+    
     // Optionally add search param if backend supports it
     // if (searchValue) query += `&search=${encodeURIComponent(searchValue)}`;
     try {
@@ -80,6 +90,9 @@ const Categories = () => {
   });
   const [isAddDragOver, setIsAddDragOver] = useState(false);
   const [addUploadedImage, setAddUploadedImage] = useState(null);
+  
+  // Check if user is a worker (read-only access)
+  const isWorker = currentUser?.role === 'worker';
 
   const filtered = useMemo(() => {
     if (!Array.isArray(categories)) return [];
@@ -87,11 +100,17 @@ const Categories = () => {
       const name = typeof cat.name === 'string'
         ? cat.name
         : (cat.name?.en || '');
-      // Only show categories created by the current user
-      const isCreatedByUser = cat.createdBy === currentUser?._id;
-      return name.toLowerCase().includes(search.toLowerCase()) && isCreatedByUser;
+      if (isWorker) {
+        // For workers, show only categories from their assigned shop
+        const workerShopId = currentUser?.assignedShop?._id || currentUser?.assignedShop;
+        return (cat.shop === workerShopId || cat.shop?._id === workerShopId) && name.toLowerCase().includes(search.toLowerCase());
+      } else {
+        // Only show categories created by the current user
+        const isCreatedByUser = cat.createdBy === currentUser?._id;
+        return name.toLowerCase().includes(search.toLowerCase()) && isCreatedByUser;
+      }
     });
-  }, [categories, search, currentUser?._id]);
+  }, [categories, search, currentUser?.assignedShop, currentUser?._id, isWorker]);
 
   const handleToggleStatus = idx => {
     setCategories(cats =>
@@ -318,13 +337,16 @@ const Categories = () => {
       <div>
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-2 md:gap-0">
           <h1 className="text-2xl font-bold">Category Management</h1>
-          <button 
-            className="btn btn-primary flex items-center w-full md:w-auto"
-            onClick={handleAddCategory}
-          >
-            <FiPlus className="mr-2" /> Add Category
-          </button>
+          {!isWorker && (
+            <button 
+              className="btn btn-primary flex items-center w-full md:w-auto"
+              onClick={handleAddCategory}
+            >
+              <FiPlus className="mr-2" /> Add Category
+            </button>
+          )}
         </div>
+        
         <div className="card mb-4 flex flex-col md:flex-row md:items-center md:justify-between p-4 gap-2 md:gap-0">
           <input
             type="text"
@@ -352,7 +374,7 @@ const Categories = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Description (EN)</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Description (AR)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                {!isWorker && <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -385,17 +407,19 @@ const Categories = () => {
                     <td className="px-6 py-4 align-middle">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${cat.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{cat.status}</span>
                   </td>
-                    <td className="px-6 py-4 align-middle text-center">
-                      <div className="flex flex-row items-center justify-center gap-2">
-                    <button 
-                          className="btn btn-secondary btn-sm inline-flex items-center shadow-sm hover:shadow-md transition"
-                      onClick={() => handleEdit(cat, idx)}
-                          title="Edit"
-                    >
-                      <FiEdit2 className="mr-1" />Edit
-                    </button>
-                      </div>
-                  </td>
+                    {!isWorker && (
+                      <td className="px-6 py-4 align-middle text-center">
+                        <div className="flex flex-row items-center justify-center gap-2">
+                          <button 
+                            className="btn btn-secondary btn-sm inline-flex items-center shadow-sm hover:shadow-md transition"
+                            onClick={() => handleEdit(cat, idx)}
+                            title="Edit"
+                          >
+                            <FiEdit2 className="mr-1" />Edit
+                          </button>
+                        </div>
+                      </td>
+                    )}
                 </tr>
               ))}
             </tbody>
@@ -403,8 +427,8 @@ const Categories = () => {
           )}
         </div>
 
-        {/* Edit Category Modal */}
-        {isEditModalOpen && editingCategory && (
+        {/* Edit Category Modal - Only for non-workers */}
+        {!isWorker && isEditModalOpen && editingCategory && (
           <EditCategoryModal
             categoryId={editingCategory._id}
             onClose={() => {
@@ -423,8 +447,8 @@ const Categories = () => {
           />
         )}
 
-        {/* Add Category Modal */}
-        {isAddModalOpen && (
+        {/* Add Category Modal - Only for non-workers */}
+        {!isWorker && isAddModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
             <div className="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4 p-4 sm:p-8 relative max-h-[90vh] overflow-y-auto">
               <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onClick={() => setIsAddModalOpen(false)}>&times;</button>

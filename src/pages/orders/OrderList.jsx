@@ -35,6 +35,9 @@ const OrderList = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const ORDERS_PER_PAGE = 10
   
+  // Check if user is a worker (read-only access)
+  const isWorker = currentUser?.role === 'worker';
+  
   // Get status from URL params
   const statusParam = searchParams.get('status')
 
@@ -43,14 +46,28 @@ const OrderList = () => {
     setIsLoading(true)
     setError(null)
     try {
-      const shopId = currentUser?.managedShops[0]?._id || (Array.isArray(currentUser?.managedShop) ? currentUser.managedShop[0] : null)
+      let shopId;
+      
+      // For workers, use assignedShop
+      if (isWorker) {
+        shopId = currentUser?.assignedShop?._id || currentUser?.assignedShop;
+      } else {
+        // For shop admins, use managedShops
+        shopId = currentUser?.managedShops[0]?._id || (Array.isArray(currentUser?.managedShop) ? currentUser.managedShop[0] : null);
+      }
+      
       if (!shopId) {
         setOrders([])
         setFilteredOrders([])
-        setError('No shop found for this user.')
+        if (isWorker) {
+          setError('No shop assigned to this worker.')
+        } else {
+          setError('No shop found for this user.')
+        }
         setIsLoading(false)
         return
       }
+      
       const data = await api.get('/api/orders')
       // Filter orders for this shop
       const allOrders = Array.isArray(data) ? data : (data.data || [])
@@ -58,7 +75,7 @@ const OrderList = () => {
         order => order.shop === shopId || order.shop?._id === shopId
       )
       setOrders(shopOrders)
-        if (statusParam) {
+      if (statusParam) {
         const normalizedStatusParam = statusParam.toLowerCase()
         setFilteredOrders(shopOrders.filter(order => order.status.toLowerCase() === normalizedStatusParam))
       } else {
@@ -262,7 +279,7 @@ const OrderList = () => {
   useEffect(() => {
     setCurrentPage(1)
   }, [filteredOrders])
-
+  
   const handleClearFilters = () => {
     setFilteredOrders(orders); // Show all orders
     // Optionally, reset any local filter/search state if you have it
@@ -272,108 +289,14 @@ const OrderList = () => {
     <div>
       <PageHeader 
         title="Orders"
-        subtitle="Manage and process customer orders"
+        subtitle="Manage and track your orders"
         breadcrumbs={[
           { text: 'Dashboard', link: '/' },
           { text: 'Orders' }
         ]}
       />
       
-      {/* Status Tabs */}
-      <div className="flex mb-6 overflow-x-auto pb-2">
-        <Link 
-          to="/orders"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            !statusParam 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          All Orders
-        </Link>
-        <Link 
-          to="/orders?status=pending"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'pending' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Pending
-        </Link>
-        <Link 
-          to="/orders?status=confirmed"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'confirmed' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Confirmed
-        </Link>
-        <Link 
-          to="/orders?status=preparing"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'preparing' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Preparing
-        </Link>
-        <Link 
-          to="/orders?status=ready"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'ready' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Ready
-        </Link>
-        <Link 
-          to="/orders?status=Out%20for%20Delivery"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'Out for Delivery' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Out for Delivery
-        </Link>
-        <Link 
-          to="/orders?status=delivered"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'delivered' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Delivered
-        </Link>
-        <Link 
-          to="/orders?status=cancelled"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'cancelled' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Cancelled
-        </Link>
-        <Link 
-          to="/orders?status=refunded"
-          className={`whitespace-nowrap px-4 py-2 border-b-2 text-sm font-medium ${
-            statusParam === 'refunded' 
-              ? 'border-primary-500 text-primary-600' 
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-          }`}
-        >
-          Refunded
-        </Link>
-      </div>
-      
-      {/* Search & Filters */}
+      {/* Filters */}
       <div className="card mb-6">
         <SearchFilter 
           onSearch={handleSearch}
@@ -383,8 +306,8 @@ const OrderList = () => {
         />
       </div>
       
-      {/* Bulk Actions */}
-      {selectedOrders.length > 0 && (
+      {/* Bulk Actions - Only for non-workers */}
+      {!isWorker && selectedOrders.length > 0 && (
         <div className="flex items-center mb-4 p-3 bg-primary-50 rounded-md animate-fade-in">
           <span className="text-sm font-medium text-primary-700 mr-4">
             {selectedOrders.length} orders selected
@@ -456,7 +379,7 @@ const OrderList = () => {
                   <th className="px-4 py-3 text-right text-nowrap">Total( QAR )</th>
                   <th className="px-4 py-3 text-center">Items</th>
                   <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right align-bottom">Actions</th>
+                  {!isWorker && <th className="px-4 py-3 text-right align-bottom">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -523,16 +446,18 @@ const OrderList = () => {
                         {order.status}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm font-medium">
-                      <div className="flex items-center justify-center h-full w-full">
-                        <button
-                          onClick={() => { setSelectedOrderId(order._id); setShowOrderModal(true); }}
-                          className="text-primary-600 hover:text-primary-900 flex justify-center items-center"
-                        >
-                          <FiEye className="h-5 w-5 cursor-pointer" title="View Order Details" />
-                        </button>
-                      </div>
-                    </td>
+                    {!isWorker && (
+                      <td className="px-4 py-4 text-sm font-medium">
+                        <div className="flex items-center justify-center h-full w-full">
+                          <button
+                            onClick={() => { setSelectedOrderId(order._id); setShowOrderModal(true); }}
+                            className="text-primary-600 hover:text-primary-900 flex justify-center items-center"
+                          >
+                            <FiEye className="h-5 w-5 cursor-pointer" title="View Order Details" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -567,7 +492,8 @@ const OrderList = () => {
           </div>
         )}
       </div>
-      {showOrderModal && selectedOrderId && (
+      {/* Order Details Modal - Only for non-workers */}
+      {!isWorker && showOrderModal && selectedOrderId && (
         <OrderDetailsModal
           orderId={selectedOrderId}
           onClose={() => { setShowOrderModal(false); setSelectedOrderId(null); }}

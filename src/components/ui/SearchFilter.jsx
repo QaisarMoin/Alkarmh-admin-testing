@@ -186,20 +186,20 @@ const SearchFilter = ({
               {(() => {
                 const filterDef = filters.find(f => f.name === key);
                 let displayValue = value;
-                if (filterDef?.type === 'select') {
+            if (filterDef?.type === 'select') {
                   const option = filterDef.options.find(o => o.value === value);
                   if (option) displayValue = option.label;
-                }
+            }
                 return `${filterDef?.label || key}: ${displayValue}`;
               })()}
-              <button
+                <button
                 type="button"
                 className="ml-2 text-gray-500 hover:text-gray-700"
                 onClick={() => handleRemoveFilter(key)}
               >
                 ×
-              </button>
-            </span>
+                </button>
+              </span>
           ))}
         </div>
       )}
