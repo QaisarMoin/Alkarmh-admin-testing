@@ -8,7 +8,7 @@ import ProductList from "./pages/products/ProductList";
 import AddProduct from "./pages/products/AddProduct";
 import OrderList from "./pages/orders/OrderList";
 import Settings from "./pages/settings/Settings";
-import Help from "./pages/help/Help";
+// import Help from "./pages/help/Help";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import * as api from "../utils/api";
 
 function Workers() {
   const { user, authToken } = useAuth();
@@ -13,53 +14,64 @@ function Workers() {
   useEffect(() => {
     if (!shopId) return;
     if (!authToken) {
-      setError('You are not authenticated. Please log in again.');
+      setError("You are not authenticated. Please log in again.");
       setLoading(false);
       return;
     }
-    setLoading(true);
-    fetch(`/api/shops/${shopId}/workers`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => res.json())
-      .then(data => {
+
+    const fetchWorkers = async () => {
+      setLoading(true);
+      try {
+        console.log("Fetching workers for shopId:", shopId);
+        const data = await api.get(`/api/shops/${shopId}/workers`);
+        console.log("Workers data received:", data);
         setWorkers(data.workers || []);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching workers:", err);
+        console.error("Error details:", err.response?.data || err.message);
+        setError(
+          `Failed to fetch workers: ${
+            err.response?.data?.message || err.message
+          }`
+        );
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        setError('Failed to fetch workers');
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchWorkers();
   }, [shopId, authToken]);
 
-//   const approveWorker = (workerId) => {
-//     fetch(`/api/shops/${shopId}/workers/${workerId}/approve`, {
-//       method: 'PUT',
-//       headers: { Authorization: `Bearer ${authToken}` }
-//     })
-//       .then(res => res.json())
-//       .then(() => {
-//         setWorkers(workers =>
-//           workers.map(w =>
-//             w._id === workerId ? { ...w, isActive: true } : w
-//           )
-//         );
-//       });
-//   };
+  //   const approveWorker = (workerId) => {
+  //     fetch(`/api/shops/${shopId}/workers/${workerId}/approve`, {
+  //       method: 'PUT',
+  //       headers: { Authorization: `Bearer ${authToken}` }
+  //     })
+  //       .then(res => res.json())
+  //       .then(() => {
+  //         setWorkers(workers =>
+  //           workers.map(w =>
+  //             w._id === workerId ? { ...w, isActive: true } : w
+  //           )
+  //         );
+  //       });
+  //   };
 
-  const toggleWorkerStatus = (workerId) => {
-    fetch(`/api/shops/${shopId}/workers/${workerId}/toggle-active`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        setWorkers(workers =>
-          workers.map(w =>
-            w._id === workerId ? { ...w, isActive: data.isActive } : w
-          )
-        );
-      });
+  const toggleWorkerStatus = async (workerId) => {
+    try {
+      const data = await api.put(
+        `/api/shops/${shopId}/workers/${workerId}/toggle-active`
+      );
+      setWorkers((workers) =>
+        workers.map((w) =>
+          w._id === workerId ? { ...w, isActive: data.isActive } : w
+        )
+      );
+    } catch (err) {
+      console.error("Error toggling worker status:", err);
+      setError("Failed to update worker status");
+    }
   };
 
   if (!shopId) return <div>No shop found for this admin.</div>;
@@ -76,30 +88,46 @@ function Workers() {
           <table className="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
             <thead>
               <tr className="bg-gray-50">
-                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">Name</th>
-                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">Email</th>
-                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">Status</th>
-                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">Action</th>
+                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">
+                  Name
+                </th>
+                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">
+                  Email
+                </th>
+                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">
+                  Status
+                </th>
+                <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
-              {workers.map(worker => (
+              {workers.map((worker) => (
                 <tr key={worker._id} className="hover:bg-gray-50 transition">
                   <td className="py-3 px-6 border-b">{worker.name}</td>
                   <td className="py-3 px-6 border-b">{worker.email}</td>
                   <td className="py-3 px-6 border-b">
                     {worker.isActive ? (
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">Active</span>
+                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                        Active
+                      </span>
                     ) : (
-                      <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">Inactive</span>
+                      <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-semibold">
+                        Inactive
+                      </span>
                     )}
                   </td>
                   <td className="py-3 px-6 border-b">
                     <button
-                      className={`px-4 py-1 rounded transition mr-2 ${worker.isActive ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-green-500 text-white hover:bg-green-600'}`}
+                      className={`px-4 py-1 rounded transition mr-2 ${
+                        worker.isActive
+                          ? "bg-yellow-500 text-white hover:bg-yellow-600"
+                          : "bg-green-500 text-white hover:bg-green-600"
+                      }`}
                       onClick={() => toggleWorkerStatus(worker._id)}
                     >
-                      {worker.isActive ? 'Deactivate' : 'Activate'}
+                      {worker.isActive ? "Deactivate" : "Activate"}
                     </button>
                   </td>
                 </tr>
@@ -112,4 +140,4 @@ function Workers() {
   );
 }
 
-export default Workers; 
+export default Workers;
