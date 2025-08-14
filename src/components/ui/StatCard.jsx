@@ -1,10 +1,19 @@
-const StatCard = ({ title, value, icon, change, changeType = 'neutral', cardClass = '' }) => {
+const StatCard = ({
+  title,
+  value,
+  icon,
+  change,
+  changeType = "neutral",
+  cardClass = "",
+}) => {
   // Determine color based on change type
-  const changeColor = 
-    changeType === 'positive' ? 'text-success-500' :
-    changeType === 'negative' ? 'text-error-500' :
-    'text-gray-500';
-    
+  const changeColor =
+    changeType === "positive"
+      ? "text-success-500"
+      : changeType === "negative"
+      ? "text-error-500"
+      : "text-gray-500";
+
   return (
     <div className={`card flex flex-col ${cardClass}`}>
       <div className="flex items-center justify-between mb-2">
@@ -24,7 +33,7 @@ const StatCard = ({ title, value, icon, change, changeType = 'neutral', cardClas
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default StatCard
+export default StatCard;

@@ -142,7 +142,7 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
       // Only show Settings for non-workers
       ...(currentUser?.role !== 'worker' ? [{
         name: 'Settings',
-        icon: <FiSettings className="w-5 h-5" />, 
+        icon: <FiSettings className="w-5 h-5" />,
         path: '/settings'
       },
       // Add Workers tab for shop admins

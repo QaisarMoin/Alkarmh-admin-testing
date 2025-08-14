@@ -81,9 +81,9 @@ const Header = ({ toggleSidebar, sidebarOpen }) => {
                       Your Profile
                     </Link> */}
                     {user?.role !== 'worker' && (
-                      <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Settings
-                      </Link>
+                    <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      Settings
+                    </Link>
                     )}
                     <button 
                       onClick={handleLogout}

@@ -1,26 +1,26 @@
 // src/App.jsx
-import { Routes, Route, Navigate } from 'react-router-dom'
-import Layout from './components/Layout'
-import ProtectedRoute from './components/ProtectedRoute'
-import Dashboard from './pages/Dashboard'
-import DashboardSuperAdmin from './pages/DashboardSuperAdmin'
-import ProductList from './pages/products/ProductList'
-import AddProduct from './pages/products/AddProduct'
-import OrderList from './pages/orders/OrderList'
-import Settings from './pages/settings/Settings'
-import Help from './pages/help/Help'
-import NotFound from './pages/NotFound'
-import LoginPage from './pages/auth/LoginPage'
-import SignupPage from './pages/auth/SignupPage'
-import WorkerSignupPage from './pages/auth/WorkerSignupPage'
-import CartPage from './pages/cart/CartPage'
-import WishlistPage from './pages/wishlist/WishlistPage'
-import Categories from './pages/products/Categories'
-import SuperAdmin from './pages/superadmin/SuperAdmin'
-import AllProductsPage from './pages/products/AllProductsPage'
-import AllCategoriesPage from './pages/products/AllCategoriesPage'
-import AllOrdersPage from './pages/orders/AllOrdersPage'
-import Workers from './pages/Workers';
+import { Routes, Route, Navigate } from "react-router-dom";
+import Layout from "./components/Layout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Dashboard from "./pages/Dashboard";
+import DashboardSuperAdmin from "./pages/DashboardSuperAdmin";
+import ProductList from "./pages/products/ProductList";
+import AddProduct from "./pages/products/AddProduct";
+import OrderList from "./pages/orders/OrderList";
+import Settings from "./pages/settings/Settings";
+import Help from "./pages/help/Help";
+import NotFound from "./pages/NotFound";
+import LoginPage from "./pages/auth/LoginPage";
+import SignupPage from "./pages/auth/SignupPage";
+import WorkerSignupPage from "./pages/auth/WorkerSignupPage";
+import CartPage from "./pages/cart/CartPage";
+import WishlistPage from "./pages/wishlist/WishlistPage";
+import Categories from "./pages/products/Categories";
+import SuperAdmin from "./pages/superadmin/SuperAdmin";
+import AllProductsPage from "./pages/AllProductsPage";
+import AllCategoriesPage from "./pages/products/AllCategoriesPage";
+import AllOrdersPage from "./pages/orders/AllOrdersPage";
+import Workers from "./pages/Workers";
 
 function App() {
   return (
@@ -39,10 +39,10 @@ function App() {
             element={
               <ProtectedRoute
                 render={({ user }) => {
-                  if (user?.role === 'super_admin') {
-                    return <Navigate to="/superdashboard" replace />
+                  if (user?.role === "super_admin") {
+                    return <Navigate to="/superdashboard" replace />;
                   }
-                  return <Dashboard />
+                  return <Dashboard />;
                 }}
               />
             }
@@ -53,7 +53,7 @@ function App() {
             <Route
               index
               element={
-                <ProtectedRoute requiredRoles={['shop_admin', 'worker']}>
+                <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
                   <ProductList />
                 </ProtectedRoute>
               }
@@ -69,7 +69,7 @@ function App() {
             <Route
               path="categories"
               element={
-                <ProtectedRoute requiredRoles={['shop_admin', 'worker']}>
+                <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
                   <Categories />
                 </ProtectedRoute>
               }
@@ -81,7 +81,7 @@ function App() {
             <Route
               index
               element={
-                <ProtectedRoute requiredRoles={['shop_admin', 'worker']}>
+                <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
                   <OrderList />
                 </ProtectedRoute>
               }
@@ -92,7 +92,7 @@ function App() {
           <Route
             path="cart"
             element={
-              <ProtectedRoute requiredRoles={['shop_admin', 'worker']}>
+              <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
                 <CartPage />
               </ProtectedRoute>
             }
@@ -102,7 +102,7 @@ function App() {
           <Route
             path="wishlist"
             element={
-              <ProtectedRoute requiredRoles={['shop_admin', 'worker']}>
+              <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
                 <WishlistPage />
               </ProtectedRoute>
             }
@@ -174,7 +174,7 @@ function App() {
       {/* Catch-All 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

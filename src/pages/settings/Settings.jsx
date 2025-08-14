@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { FiSave, FiGlobe, FiDollarSign, FiTruck, FiMail, FiLock, FiLoader, FiAlertCircle, FiEye, FiEyeOff } from 'react-icons/fi'
+import { FiSave, FiGlobe, FiDollarSign, FiTruck, FiMail, FiLock, FiLoader, FiAlertCircle, FiEye, FiEyeOff, FiPlus, FiTrash2 } from 'react-icons/fi'
 import PageHeader from '../../components/ui/PageHeader'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../contexts/AuthContext' // Import useAuth
@@ -35,9 +35,16 @@ const initialState = {
   },
   settings: {
     allowOnlineOrders: true,
-    deliveryRadius: 10,
-    minimumOrderAmount: 0,
-    deliveryFee: 0,
+    deliveryRadius: 10, // Legacy field, kept for backward compatibility
+    minimumOrderAmount: 0, // Legacy field, kept for backward compatibility
+    deliveryFee: 0, // Legacy field, kept for backward compatibility
+    deliveryConfigurations: [
+      {
+        deliveryRadius: 10,
+        minimumOrderAmount: 0,
+        deliveryFee: 0,
+      }
+    ],
     operatingHours: defaultOperatingHours,
   },
 };
@@ -99,7 +106,18 @@ const Settings = () => {
       console.log('Fetched shop data:', res.data); // Debug log for operating hours
       // getUserShops returns an array, use the first shop for this user
       if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        setShop({ ...initialState, ...res.data[0] });
+        const shopData = res.data[0];
+        
+        // Handle backward compatibility for deliveryConfigurations
+        if (!shopData.settings.deliveryConfigurations) {
+          shopData.settings.deliveryConfigurations = [{
+            deliveryRadius: shopData.settings.deliveryRadius || 10,
+            minimumOrderAmount: shopData.settings.minimumOrderAmount || 0,
+            deliveryFee: shopData.settings.deliveryFee || 0
+          }];
+        }
+        
+        setShop({ ...initialState, ...shopData });
       } else {
         setShop(initialState);
       }
@@ -161,14 +179,78 @@ const Settings = () => {
     }));
   };
 
+  // Function to add a new delivery configuration
+  const addDeliveryConfiguration = () => {
+    setShop(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        deliveryConfigurations: [
+          ...prev.settings.deliveryConfigurations,
+          {
+            deliveryRadius: 10,
+            minimumOrderAmount: 0,
+            deliveryFee: 0
+          }
+        ]
+      }
+    }));
+  };
+
+  // Function to remove a delivery configuration
+  const removeDeliveryConfiguration = (index) => {
+    if (shop.settings.deliveryConfigurations.length <= 1) {
+      toast.warning("You must have at least one delivery configuration");
+      return;
+    }
+    
+    setShop(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        deliveryConfigurations: prev.settings.deliveryConfigurations.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  // Function to update a delivery configuration
+  const updateDeliveryConfiguration = (index, field, value) => {
+    setShop(prev => {
+      const updatedConfigurations = [...prev.settings.deliveryConfigurations];
+      updatedConfigurations[index] = {
+        ...updatedConfigurations[index],
+        [field]: Number(value)
+      };
+      
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          deliveryConfigurations: updatedConfigurations
+        }
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Ensure legacy fields are updated with the first delivery configuration for backward compatibility
+      const firstConfig = shop.settings.deliveryConfigurations[0] || {
+        deliveryRadius: 10,
+        minimumOrderAmount: 0,
+        deliveryFee: 0
+      };
+      
       const payload = {
         ...shop,
         settings: {
           ...shop.settings,
+          // Update legacy fields with first configuration values
+          deliveryRadius: firstConfig.deliveryRadius,
+          minimumOrderAmount: firstConfig.minimumOrderAmount,
+          deliveryFee: firstConfig.deliveryFee,
           operatingHours: { ...shop.settings.operatingHours }
         },
         userId: currentUser?._id,
@@ -388,8 +470,8 @@ const Settings = () => {
             <input type="text" value={shop.contact.website} onChange={e => handleChange(e, ['contact', 'website'])} className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />
           </div>
         </div>
-        <div className="flex flex-wrap gap-6 mt-6 border-t pt-6">
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+        <div className="mt-6 border-t pt-6">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-4">
             <input
               type="checkbox"
               checked={shop.settings.allowOnlineOrders}
@@ -401,26 +483,75 @@ const Settings = () => {
             />
             Allow Online Orders
           </label>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Radius (km):</label>
+          
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-primary-700">Delivery Configurations</h3>
+              <button
+                type="button"
+                onClick={addDeliveryConfiguration}
+                className="inline-flex items-center px-3 py-1 border border-primary-500 text-primary-600 rounded-md hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <FiPlus className="mr-1" /> Add Configuration
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {shop.settings.deliveryConfigurations.map((config, index) => (
+                <div key={index} className="flex flex-wrap items-end gap-4 p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Radius (km):</label>
+                    <input
+                      type="number"
+                      value={config.deliveryRadius}
+                      onChange={e => updateDeliveryConfiguration(index, 'deliveryRadius', e.target.value)}
+                      className="form-input w-32 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Order Amount:</label>
+                    <input
+                      type="number"
+                      value={config.minimumOrderAmount}
+                      onChange={e => updateDeliveryConfiguration(index, 'minimumOrderAmount', e.target.value)}
+                      className="form-input w-32 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Fee:</label>
+                    <input
+                      type="number"
+                      value={config.deliveryFee}
+                      onChange={e => updateDeliveryConfiguration(index, 'deliveryFee', e.target.value)}
+                      className="form-input w-32 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeDeliveryConfiguration(index)}
+                    className="inline-flex items-center px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mb-1"
+                  >
+                    <FiTrash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Keep the legacy fields for backward compatibility, but hide them */}
+          <div className="hidden">
             <input type="number" value={shop.settings.deliveryRadius} onChange={e => setShop(s => ({
               ...s,
               settings: { ...s.settings, deliveryRadius: Number(e.target.value) }
-            }))} className="form-input w-32 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Order Amount:</label>
+            }))} />
             <input type="number" value={shop.settings.minimumOrderAmount} onChange={e => setShop(s => ({
               ...s,
               settings: { ...s.settings, minimumOrderAmount: Number(e.target.value) }
-            }))} className="form-input w-32 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Fee:</label>
+            }))} />
             <input type="number" value={shop.settings.deliveryFee} onChange={e => setShop(s => ({
               ...s,
               settings: { ...s.settings, deliveryFee: Number(e.target.value) }
-            }))} className="form-input w-32 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />
+            }))} />
           </div>
         </div>
         <div className="mt-8">

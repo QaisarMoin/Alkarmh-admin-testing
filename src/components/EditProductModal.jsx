@@ -1,270 +1,419 @@
-import React, { useState, useEffect } from 'react';
-import * as api from '../utils/api';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import * as api from "../utils/api";
+import { toast } from "react-toastify";
 
 const statusOptions = [
-  { key: 'Active', label: 'Active' },
-  { key: 'Out of stock', label: 'Out of Stock' },
-  { key: 'Low stock', label: 'Low Stock' },
-  { key: 'Hidden', label: 'Hidden' },
-  { key: 'Draft', label: 'Draft' }
+  { key: "Active", label: "Active" },
+  { key: "Out of Stock", label: "Out of Stock" },
+  { key: "Low Stock", label: "Low Stock" },
+  { key: "Hidden", label: "Hidden" },
+  { key: "Draft", label: "Draft" },
 ];
 
 const EditProductModal = ({ productId, categories, onClose, onSave }) => {
   const [form, setForm] = useState({
     name: {
-      en: '',
-      ar: ''
+      en: "",
+      ar: "",
     },
     description: {
-      en: '',
-      ar: ''
+      en: "",
+      ar: "",
     },
     baseImage: [],
-    category: '',
-    shop: '',
-    variants: [{
-      size: '',
-      color: '',
-      price: 0,
-      stock: 0,
-      sku: '',
-      barcode: ''
-    }],
-    status: 'Active',
+    category: "",
+    shop: "",
+    variants: [
+      {
+        size: "",
+        color: "",
+        price: 0,
+        stock: 0,
+        sku: "",
+        barcode: "",
+      },
+    ],
+    status: "Active",
     specifications: {
-      weight: '',
-      dimensions: '',
-      brand: '',
-      model: '',
-      warranty: '',
-      material: '',
-      origin: ''
+      weight: "",
+      dimensions: "",
+      brand: "",
+      model: "",
+      warranty: "",
+      material: "",
+      origin: "",
     },
     seo: {
-      metaTitle: '',
-      metaDescription: '',
+      metaTitle: "",
+      metaDescription: "",
       keywords: [],
-      slug: ''
+      slug: "",
     },
     tags: [],
     isOnSale: false,
-    featured: false
+    featured: false,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pendingImages, setPendingImages] = useState([]);
 
+  // Helper function to calculate total stock and determine appropriate status
+  const calculateTotalStockAndStatus = (variants, currentStatus) => {
+    const totalStock = variants.reduce(
+      (sum, variant) => sum + Number(variant.stock),
+      0
+    );
+    let newStatus;
+
+    if (totalStock <= 100) {
+      newStatus = "Low Stock";
+    } else {
+      // If stock is > 100, set to Active (unless it's Hidden or Draft)
+      newStatus =
+        currentStatus === "Hidden" || currentStatus === "Draft"
+          ? currentStatus
+          : "Active";
+    }
+
+    return {
+      totalStock,
+      status: newStatus,
+    };
+  };
+
   useEffect(() => {
     if (!productId) return;
     setLoading(true);
     setError(null);
-    api.get(`/api/products/${productId}`)
+    api
+      .get(`/api/products/${productId}`)
       .then((data) => {
         if (data && data.data) {
-      setForm({
-            name: data.data.name || { en: '', ar: '' },
-            description: data.data.description || { en: '', ar: '' },
+          setForm({
+            name: data.data.name || { en: "", ar: "" },
+            description: data.data.description || { en: "", ar: "" },
             baseImage: data.data.baseImage || [],
-            category: data.data.category || '',
-            shop: data.data.shop || '',
-            variants: data.data.variants || [{
-              size: '',
-              color: '',
-              price: 0,
-              stock: 0,
-              sku: '',
-              barcode: ''
-            }],
-            status: data.data.status || 'Active',
+            category: data.data.category || "",
+            shop: data.data.shop || "",
+            variants: data.data.variants || [
+              {
+                size: "",
+                color: "",
+                price: 0,
+                stock: 0,
+                sku: "",
+                barcode: "",
+              },
+            ],
+            status: data.data.status || "Active",
             specifications: data.data.specifications || {
-              weight: '',
-              dimensions: '',
-              brand: '',
-              model: '',
-              warranty: '',
-              material: '',
-              origin: ''
+              weight: "",
+              dimensions: "",
+              brand: "",
+              model: "",
+              warranty: "",
+              material: "",
+              origin: "",
             },
             seo: data.data.seo || {
-              metaTitle: '',
-              metaDescription: '',
+              metaTitle: "",
+              metaDescription: "",
               keywords: [],
-              slug: ''
+              slug: "",
             },
             tags: data.data.tags || [],
             isOnSale: data.data.isOnSale || false,
-            featured: data.data.featured || false
+            featured: data.data.featured || false,
           });
         }
         setLoading(false);
       })
       .catch((err) => {
-        setError('Failed to fetch product details.');
+        setError("Failed to fetch product details.");
         setLoading(false);
       });
   }, [productId]);
 
   const handleChange = (e, section, subsection) => {
     const { name, value, type, checked } = e.target;
-    
+
     if (section) {
       if (subsection) {
-        setForm(prev => ({
+        setForm((prev) => ({
           ...prev,
           [section]: {
             ...prev[section],
-            [subsection]: value
-          }
+            [subsection]: value,
+          },
         }));
       } else {
-        setForm(prev => ({
+        setForm((prev) => ({
           ...prev,
           [section]: {
             ...prev[section],
-            [name]: value
-          }
+            [name]: value,
+          },
         }));
       }
     } else {
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : value
+        [name]: type === "checkbox" ? checked : value,
       }));
     }
   };
 
   const handleVariantChange = (index, field, value) => {
-    setForm(prev => ({
-      ...prev,
-      variants: prev.variants.map((variant, i) => 
+    setForm((prev) => {
+      // Create updated variants array
+      const updatedVariants = prev.variants.map((variant, i) =>
         i === index ? { ...variant, [field]: value } : variant
-      )
-    }));
+      );
+
+      // If stock is being changed, check if we need to update status
+      if (field === "stock") {
+        const { status } = calculateTotalStockAndStatus(
+          updatedVariants,
+          prev.status
+        );
+
+        return {
+          ...prev,
+          variants: updatedVariants,
+          status,
+        };
+      }
+
+      // Return updated form without changing status
+      return {
+        ...prev,
+        variants: updatedVariants,
+      };
+    });
   };
 
   const addVariant = () => {
-    setForm(prev => ({
-      ...prev,
-      variants: [...prev.variants, {
-        size: '',
-        color: '',
+    setForm((prev) => {
+      // Create new variant
+      const newVariant = {
+        size: "",
+        color: "",
         price: 0,
         stock: 0,
-        sku: '',
-        barcode: ''
-      }]
-    }));
+        sku: "",
+        barcode: "",
+      };
+
+      // Create updated variants array
+      const updatedVariants = [...prev.variants, newVariant];
+
+      // Calculate status based on total stock
+      const { status } = calculateTotalStockAndStatus(
+        updatedVariants,
+        prev.status
+      );
+
+      // Return updated form with status updated if needed
+      return {
+        ...prev,
+        variants: updatedVariants,
+        status,
+      };
+    });
   };
 
   const removeVariant = (index) => {
     if (form.variants.length > 1) {
-      setForm(prev => ({
-        ...prev,
-        variants: prev.variants.filter((_, i) => i !== index)
-      }));
+      setForm((prev) => {
+        // Create updated variants array
+        const updatedVariants = prev.variants.filter((_, i) => i !== index);
+
+        // Calculate status based on total stock
+        const { status } = calculateTotalStockAndStatus(
+          updatedVariants,
+          prev.status
+        );
+
+        // Return updated form with status updated if needed
+        return {
+          ...prev,
+          variants: updatedVariants,
+          status,
+        };
+      });
     }
   };
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-    setPendingImages(prev => [...prev, ...files]);
-    toast.info('Image(s) added. They will be uploaded when you save changes.');
+    setPendingImages((prev) => [...prev, ...files]);
+    toast.info("Image(s) added. They will be uploaded when you save changes.");
   };
 
   const handleRemoveImage = (idx) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
-      baseImage: prev.baseImage.filter((_, i) => i !== idx)
+      baseImage: prev.baseImage.filter((_, i) => i !== idx),
     }));
     // Also remove from pendingImages if it's a pending file
-    setPendingImages(prev => prev.filter((_, i) => i !== idx));
+    setPendingImages((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleTagsChange = (e) => {
-    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(Boolean);
-    setForm(prev => ({ ...prev, tags }));
+    const tags = e.target.value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+    setForm((prev) => ({ ...prev, tags }));
   };
 
   const handleKeywordsChange = (e) => {
-    const keywords = e.target.value.split(',').map(keyword => keyword.trim()).filter(Boolean);
-    setForm(prev => ({
+    const keywords = e.target.value
+      .split(",")
+      .map((keyword) => keyword.trim())
+      .filter(Boolean);
+    setForm((prev) => ({
       ...prev,
-      seo: { ...prev.seo, keywords }
+      seo: { ...prev.seo, keywords },
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!form.name.en.trim()) {
-      toast.error('Please enter a product name in English');
+      toast.error("Please enter a product name in English");
       return;
     }
-    
+
     if (!form.category) {
-      toast.error('Please select a category');
+      toast.error("Please select a category");
       return;
     }
-    
+
     if (form.variants.length === 0) {
-      toast.error('Please add at least one variant');
+      toast.error("Please add at least one variant");
       return;
     }
-    
+
     let imageUrls = [];
     if (pendingImages.length > 0) {
       try {
-        toast.info('Uploading images...');
-        const uploadPromises = pendingImages.map(file => {
+        toast.info("Uploading images...");
+        const uploadPromises = pendingImages.map((file) => {
           const formData = new FormData();
-          formData.append('file', file);
-          return api.post('/api/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+          formData.append("file", file);
+          return api.post("/api/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
           });
         });
         const uploadResults = await Promise.all(uploadPromises);
-        imageUrls = uploadResults.map(res => res.url).filter(Boolean);
-        toast.success('All images uploaded!');
+        imageUrls = uploadResults.map((res) => res.url).filter(Boolean);
+        toast.success("All images uploaded!");
       } catch (err) {
-        toast.error('Image upload failed.');
-      return;
-    }
+        toast.error("Image upload failed.");
+        return;
+      }
     }
 
+    // Check if status is being manually set or should be automatic
+    let updatedStatus;
+    let isManualUpdate = false;
+
+    // If the status dropdown is disabled (due to stock levels), use automatic status
+    const totalStock = form.variants.reduce(
+      (sum, variant) => sum + Number(variant.stock),
+      0
+    );
+    const isLowStock = totalStock <= 100;
+    const isHighStock =
+      totalStock > 100 &&
+      !isLowStock &&
+      form.status !== "Hidden" &&
+      form.status !== "Draft";
+
+    if (isLowStock || isHighStock) {
+      // Use automatic status based on stock levels
+      const { status } = calculateTotalStockAndStatus(
+        form.variants,
+        form.status
+      );
+      updatedStatus = status;
+    } else {
+      // Use manually selected status
+      updatedStatus = form.status;
+      isManualUpdate = true;
+    }
+
+    // Create updated form with appropriate status
     const updatedForm = {
       ...form,
-      baseImage: [...form.baseImage, ...imageUrls]
+      baseImage: [...form.baseImage, ...imageUrls],
+      status: updatedStatus,
+      manualStatusUpdate: isManualUpdate,
     };
+
+    // If status was changed automatically, show a notification
+    if (updatedStatus !== form.status) {
+      if (!isManualUpdate) {
+        if (updatedStatus === "Low Stock") {
+          toast.info(
+            'Product status automatically set to "Low Stock" because stock is below 100 units'
+          );
+        } else if (
+          updatedStatus === "Active" &&
+          (form.status === "Low Stock" || form.status === "Out of Stock")
+        ) {
+          toast.info(
+            'Product status automatically set to "Active" because stock is above 100 units'
+          );
+        }
+      } else {
+        toast.info(`Product status manually set to "${updatedStatus}"`);
+      }
+    }
 
     try {
       const response = await api.put(`/api/products/${productId}`, updatedForm);
       if (response && response.data) {
-        toast.success('Product updated successfully!');
+        toast.success("Product updated successfully!");
         onSave(response.data);
         setPendingImages([]); // Clear pending images after successful update
       } else {
-        toast.error('Failed to update product. Please try again.');
+        toast.error("Failed to update product. Please try again.");
       }
     } catch (error) {
-      console.error('Error updating product:', error);
-      toast.error('Error updating product. Please try again.');
+      console.error("Error updating product:", error);
+      toast.error("Error updating product. Please try again.");
     }
   };
 
   // Find if the current category is in the filtered categories
-  const currentCategoryInList = categories.some(cat => cat._id === form.category);
+  const currentCategoryInList = categories.some(
+    (cat) => cat._id === form.category
+  );
   // Try to get the category name from the product object (form.category may be an object or an id)
-  let currentCategoryName = '';
-  if (typeof form.category === 'object' && form.category !== null) {
-    currentCategoryName = form.category.name?.en || form.category.name || form.category._id || 'Current Category (not in your list)';
+  let currentCategoryName = "";
+  if (typeof form.category === "object" && form.category !== null) {
+    currentCategoryName =
+      form.category.name?.en ||
+      form.category.name ||
+      form.category._id ||
+      "Current Category (not in your list)";
   } else {
-    currentCategoryName = 'Current Category (not in your list)';
+    currentCategoryName = "Current Category (not in your list)";
   }
-  const currentCategoryOption = !currentCategoryInList && form.category
-    ? { _id: typeof form.category === 'object' ? form.category._id : form.category, name: { en: currentCategoryName } }
-    : null;
+  const currentCategoryOption =
+    !currentCategoryInList && form.category
+      ? {
+          _id:
+            typeof form.category === "object"
+              ? form.category._id
+              : form.category,
+          name: { en: currentCategoryName },
+        }
+      : null;
 
   if (loading) {
     return (
@@ -290,9 +439,14 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
       <div className="bg-white p-6 rounded shadow-lg w-full max-w-4xl overflow-y-auto max-h-[90vh]">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold">Edit Product</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-2xl">&times;</button>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-700 text-2xl"
+          >
+            &times;
+          </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -300,7 +454,7 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
               <label className="block font-medium mb-1">Name (English)</label>
               <input
                 value={form.name.en}
-                onChange={(e) => handleChange(e, 'name', 'en')}
+                onChange={(e) => handleChange(e, "name", "en")}
                 className="form-input w-full"
                 required
               />
@@ -309,24 +463,28 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
               <label className="block font-medium mb-1">Name (Arabic)</label>
               <input
                 value={form.name.ar}
-                onChange={(e) => handleChange(e, 'name', 'ar')}
+                onChange={(e) => handleChange(e, "name", "ar")}
                 className="form-input w-full"
               />
             </div>
             <div>
-              <label className="block font-medium mb-1">Description (English)</label>
+              <label className="block font-medium mb-1">
+                Description (English)
+              </label>
               <textarea
                 value={form.description.en}
-                onChange={(e) => handleChange(e, 'description', 'en')}
+                onChange={(e) => handleChange(e, "description", "en")}
                 className="form-input w-full"
                 rows="3"
               />
             </div>
-          <div>
-              <label className="block font-medium mb-1">Description (Arabic)</label>
+            <div>
+              <label className="block font-medium mb-1">
+                Description (Arabic)
+              </label>
               <textarea
                 value={form.description.ar}
-                onChange={(e) => handleChange(e, 'description', 'ar')}
+                onChange={(e) => handleChange(e, "description", "ar")}
                 className="form-input w-full"
                 rows="3"
               />
@@ -335,11 +493,15 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
 
           {/* Category and Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-medium mb-1">Category</label>
+            <div>
+              <label className="block font-medium mb-1">Category</label>
               <select
                 name="category"
-                value={currentCategoryOption ? currentCategoryOption._id : form.category}
+                value={
+                  currentCategoryOption
+                    ? currentCategoryOption._id
+                    : form.category
+                }
                 onChange={handleChange}
                 className="form-input w-full"
                 required
@@ -349,25 +511,64 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
                     {currentCategoryOption.name.en}
                   </option>
                 ) : (
-              <option value="">Select a category</option>
+                  <option value="">Select a category</option>
                 )}
                 {categories?.map((cat) => (
-                  <option key={cat._id} value={cat._id}>{cat.name?.en || cat.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-              <label className="block font-medium mb-1">Status</label>
-              <select
-                name="status"
-                value={form.status}
-              onChange={handleChange}
-              className="form-input w-full"
-              >
-                {statusOptions.map(option => (
-                  <option key={option.key} value={option.key}>{option.label}</option>
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name?.en || cat.name}
+                  </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Status</label>
+              {/* Calculate total stock once for efficiency */}
+              {(() => {
+                const totalStock = form.variants.reduce(
+                  (sum, variant) => sum + Number(variant.stock),
+                  0
+                );
+                const isLowStock = totalStock <= 100;
+
+                return (
+                  <>
+                    <select
+                      name="status"
+                      value={form.status}
+                      onChange={handleChange}
+                      className={`form-input w-full ${
+                        isLowStock
+                          ? "border-yellow-400 bg-yellow-50"
+                          : totalStock > 100
+                          ? "border-green-400 bg-green-50"
+                          : ""
+                      }`}
+                      disabled={isLowStock || totalStock > 100}
+                    >
+                      {statusOptions.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {isLowStock && (
+                      <p className="text-xs text-yellow-600 mt-1">
+                        Status automatically set to "Low Stock" because total
+                        stock is below 100 units
+                      </p>
+                    )}
+                    {totalStock > 100 &&
+                      !isLowStock &&
+                      form.status !== "Hidden" &&
+                      form.status !== "Draft" && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Status automatically set to "Active" because total
+                          stock is above 100 units
+                        </p>
+                      )}
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -384,37 +585,50 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
               </button>
             </div>
             {form.variants.map((variant, index) => (
-              <div key={index} className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2 p-2 border rounded">
+              <div
+                key={index}
+                className="grid grid-cols-2 md:grid-cols-6 gap-2 mb-2 p-2 border rounded"
+              >
                 <input
                   placeholder="Size"
                   value={variant.size}
-                  onChange={(e) => handleVariantChange(index, 'size', e.target.value)}
+                  onChange={(e) =>
+                    handleVariantChange(index, "size", e.target.value)
+                  }
                   className="form-input"
                 />
                 <input
                   placeholder="Color"
                   value={variant.color}
-                  onChange={(e) => handleVariantChange(index, 'color', e.target.value)}
+                  onChange={(e) =>
+                    handleVariantChange(index, "color", e.target.value)
+                  }
                   className="form-input"
                 />
                 <input
                   type="number"
                   placeholder="Price"
                   value={variant.price}
-                  onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                  onChange={(e) =>
+                    handleVariantChange(index, "price", e.target.value)
+                  }
                   className="form-input"
                 />
-            <input
-              type="number"
+                <input
+                  type="number"
                   placeholder="Stock"
                   value={variant.stock}
-                  onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+                  onChange={(e) =>
+                    handleVariantChange(index, "stock", e.target.value)
+                  }
                   className="form-input"
                 />
                 <input
                   placeholder="SKU"
                   value={variant.sku}
-                  onChange={(e) => handleVariantChange(index, 'sku', e.target.value)}
+                  onChange={(e) =>
+                    handleVariantChange(index, "sku", e.target.value)
+                  }
                   className="form-input"
                 />
                 <div className="flex items-center">
@@ -437,7 +651,11 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
             <div className="flex flex-wrap gap-2">
               {form.baseImage.map((img, idx) => (
                 <div key={idx} className="relative">
-                  <img src={img} alt="Product" className="w-24 h-24 object-cover rounded" />
+                  <img
+                    src={img}
+                    alt="Product"
+                    className="w-24 h-24 object-cover rounded"
+                  />
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(idx)}
@@ -449,10 +667,18 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
               ))}
               {pendingImages.map((file, idx) => (
                 <div key={`pending-${idx}`} className="relative">
-                  <img src={URL.createObjectURL(file)} alt="Pending" className="w-24 h-24 object-cover rounded opacity-70" />
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt="Pending"
+                    className="w-24 h-24 object-cover rounded opacity-70"
+                  />
                   <button
                     type="button"
-                    onClick={() => setPendingImages(prev => prev.filter((_, i) => i !== idx))}
+                    onClick={() =>
+                      setPendingImages((prev) =>
+                        prev.filter((_, i) => i !== idx)
+                      )
+                    }
                     className="absolute top-0 right-0 bg-white rounded-full p-1 text-red-500 hover:text-red-700"
                   >
                     &times;
@@ -483,7 +709,7 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
                   </label>
                   <input
                     value={form.specifications[spec]}
-                    onChange={(e) => handleChange(e, 'specifications', spec)}
+                    onChange={(e) => handleChange(e, "specifications", spec)}
                     className="form-input w-full"
                   />
                 </div>
@@ -496,26 +722,32 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
             <h3 className="font-medium mb-2">SEO</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Meta Title</label>
+                <label className="block text-sm font-medium mb-1">
+                  Meta Title
+                </label>
                 <input
                   value={form.seo.metaTitle}
-                  onChange={(e) => handleChange(e, 'seo', 'metaTitle')}
+                  onChange={(e) => handleChange(e, "seo", "metaTitle")}
                   className="form-input w-full"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Meta Description</label>
+                <label className="block text-sm font-medium mb-1">
+                  Meta Description
+                </label>
                 <textarea
                   value={form.seo.metaDescription}
-                  onChange={(e) => handleChange(e, 'seo', 'metaDescription')}
+                  onChange={(e) => handleChange(e, "seo", "metaDescription")}
                   className="form-input w-full"
                   rows="2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Keywords (comma-separated)</label>
+                <label className="block text-sm font-medium mb-1">
+                  Keywords (comma-separated)
+                </label>
                 <input
-                  value={form.seo.keywords.join(', ')}
+                  value={form.seo.keywords.join(", ")}
                   onChange={handleKeywordsChange}
                   className="form-input w-full"
                   placeholder="keyword1, keyword2, keyword3"
@@ -525,7 +757,7 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
                 <label className="block text-sm font-medium mb-1">Slug</label>
                 <input
                   value={form.seo.slug}
-                  onChange={(e) => handleChange(e, 'seo', 'slug')}
+                  onChange={(e) => handleChange(e, "seo", "slug")}
                   className="form-input w-full"
                 />
               </div>
@@ -535,15 +767,17 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
           {/* Tags and Flags */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block font-medium mb-1">Tags (comma-separated)</label>
+              <label className="block font-medium mb-1">
+                Tags (comma-separated)
+              </label>
               <input
-                value={form.tags.join(', ')}
+                value={form.tags.join(", ")}
                 onChange={handleTagsChange}
                 className="form-input w-full"
                 placeholder="tag1, tag2, tag3"
               />
-          </div>
-          <div className="flex items-center space-x-4">
+            </div>
+            <div className="flex items-center space-x-4">
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -569,7 +803,11 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
 
           {/* Submit Buttons */}
           <div className="flex justify-end space-x-2">
-            <button type="button" onClick={onClose} className="btn btn-secondary">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn btn-secondary"
+            >
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
@@ -582,4 +820,4 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
   );
 };
 
-export default EditProductModal; 
+export default EditProductModal;
