@@ -33,7 +33,7 @@ const OrderList = () => {
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const ORDERS_PER_PAGE = 10
+  const ORDERS_PER_PAGE = 30
   
   // Check if user is a worker (read-only access)
   const isWorker = currentUser?.role === 'worker';
@@ -71,16 +71,19 @@ const OrderList = () => {
       const data = await api.get('/api/orders')
       // Filter orders for this shop
       const allOrders = Array.isArray(data) ? data : (data.data || [])
-      const shopOrders = allOrders.filter(
-        order => order.shop === shopId || order.shop?._id === shopId
-      )
-      setOrders(shopOrders)
-      if (statusParam) {
-        const normalizedStatusParam = statusParam.toLowerCase()
-        setFilteredOrders(shopOrders.filter(order => order.status.toLowerCase() === normalizedStatusParam))
-      } else {
-        setFilteredOrders(shopOrders)
-      }
+     // reverse the orders 
+     
+     const shopOrders = allOrders.filter(
+      order => order.shop === shopId || order.shop?._id === shopId
+    )
+    const reversedOrders = [...shopOrders].reverse()
+    setOrders(reversedOrders)
+    if (statusParam) {
+      const normalizedStatusParam = statusParam.toLowerCase()
+      setFilteredOrders(reversedOrders.filter(order => order.status.toLowerCase() === normalizedStatusParam))
+    } else {
+      setFilteredOrders(reversedOrders)
+    }
     } catch (err) {
       setOrders([])
       setFilteredOrders([])
