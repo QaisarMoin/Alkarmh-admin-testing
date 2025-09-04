@@ -200,6 +200,8 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
                     <option value="refunded">Refunded</option>
+                    <option value="24Hrs">24Hrs</option>
+                    <option value="42Hrs">42Hrs</option>
                   </select>
                 </div>
                 <button
