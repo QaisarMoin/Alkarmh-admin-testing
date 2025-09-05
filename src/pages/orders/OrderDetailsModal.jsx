@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FiX, FiShoppingBag, FiUser, FiMail, FiMapPin, FiCreditCard, FiAlertCircle, FiClock ,FiPhone, FiLoader} from 'react-icons/fi';
+import { FiX, FiShoppingBag, FiUser, FiMail, FiMapPin, FiCreditCard, FiAlertCircle, FiClock, FiPhone, FiLoader } from 'react-icons/fi';
 import * as api from '../../utils/api';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -45,8 +45,8 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
         const data = await api.get(`/api/orders/order/${orderId}`);
         console.log('Order details response:', data);
         setOrder(data.data || data);
-        console.log(data.data || data,"Status");
-        
+        console.log(data.data || data, "Status");
+
         // Fetch shop details if shop ID exists
         if (data.shop) {
           try {
@@ -57,13 +57,13 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
           }
         }
         console.log(data.user);
-        
+
         // Fetch user details if user ID exists
         if (data.user) {
           try {
             const userData = await api.get(`/api/auth/user/${data.user}`);
             console.log(userData);
-            
+
             setUserData(userData.data || userData);
           } catch (err) {
             console.error('Failed to fetch user details:', err);
@@ -126,7 +126,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
               <div>
                 <h2 className="text-2xl font-bold mb-1">Order No: <span className="text-primary-600">{order._id}</span></h2>
                 <div className="flex items-center gap-2 text-lg font-semibold ">
-                <h2 className="text-2xl font-bold mb-1"> Shop Name - </h2>{getDisplayName(shopDetails?.name) || 'Shop'}
+                  <h2 className="text-2xl font-bold mb-1"> Shop Name - </h2>{getDisplayName(shopDetails?.name) || 'Shop'}
                   <span className={`ml-3 badge ${statusColors[order.status] || 'badge-secondary'}`}>
                     {order.status}
                   </span>
@@ -155,7 +155,17 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                 </div>
                 <div className="flex items-center gap-3 mb-1">
                   <FiMapPin className="text-blue-500" />
-                  <span className="">{order.deliveryAddress?.street || 'N/A'}</span>
+                  <span>{order.deliveryAddress?.street || 'N/A'}</span>
+                  {order.deliveryAddress?.latitude && order.deliveryAddress?.longitude && (
+                    <a
+                      href={`https://www.google.com/maps?q=${order.deliveryAddress.latitude},${order.deliveryAddress.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      View on Map
+                    </a>
+                  )}
                 </div>
                 {order.deliveryAddress && (
                   <div className="ml-7 text-xs text-gray-500">
@@ -164,7 +174,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                 )}
                 <div className="flex items-center gap-3 mt-1">
                   <FiPhone className="text-blue-500" />
-                  <span className="">{userData?.profile?.phone || userData?.contact || 'N/A'}</span>
+                  <span className="">{order?.deliveryAddress?.phone ||userData?.profile?.phone || userData?.contact || 'N/A'}</span>
                 </div>
               </div>
               <div className="card">
@@ -266,7 +276,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                       </div>
                       <div className="text-right font-bold text-xl text-gray-900 min-w-[120px]">
                         <span className='text-xs'>
-                        QAR </span> {item.unitPrice ? item.unitPrice : '0.00'}
+                          QAR </span> {item.unitPrice ? item.unitPrice : '0.00'}
                       </div>
                     </div>
                   );
@@ -284,7 +294,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
                     <span><span className='text-xs'>
-                        QAR </span>{order.pricing?.subtotal || '0.00'}</span>
+                      QAR </span>{order.pricing?.subtotal || '0.00'}</span>
                   </div>
                   {order.pricing?.tax > 0 && (
                     <div className="flex justify-between">
@@ -310,7 +320,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                   <div className="flex justify-between font-bold text-lg mt-2 border-t pt-2">
                     <span className="text-blue-700">Total:</span>
                     <span className="text-blue-600"><span className='text-xs'>
-                        QAR </span>{order.pricing?.totalAmount || '0.00'}</span>
+                      QAR </span>{order.pricing?.totalAmount || '0.00'}</span>
                   </div>
                 </div>
               </div>
