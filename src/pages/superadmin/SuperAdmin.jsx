@@ -64,7 +64,7 @@ const SuperAdmin = () => {
   const USERS_PER_PAGE = 10
 
   const statusOptions = [
-    { value: 'active', label: 'Active' },
+    { value: 'Active', label: 'Active' },
     { value: 'inactive', label: 'Inactive' },
     { value: 'suspended', label: 'Suspended' },
     { value: 'pending_approval', label: 'Pending Approval' },
