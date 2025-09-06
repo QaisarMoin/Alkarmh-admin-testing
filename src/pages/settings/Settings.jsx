@@ -450,13 +450,56 @@ const Settings = () => {
             <input type="text" value={shop.address.zipCode} onChange={e => handleChange(e, ['address', 'zipCode'])} className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Latitude:</label>
-            <input type="number" value={shop.address.coordinates.latitude} onChange={e => handleChange(e, ['address', 'coordinates', 'latitude'])} className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Longitude:</label>
-            <input type="number" value={shop.address.coordinates.longitude} onChange={e => handleChange(e, ['address', 'coordinates', 'longitude'])} className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />
-          </div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Latitude:</label>
+  <input
+    type="number"
+    value={shop.address.coordinates.latitude}
+    onChange={e => handleChange(e, ['address', 'coordinates', 'latitude'])}
+    className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+  />
+</div>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Longitude:</label>
+  <input
+    type="number"
+    value={shop.address.coordinates.longitude}
+    onChange={e => handleChange(e, ['address', 'coordinates', 'longitude'])}
+    className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+  />
+</div>
+
+{/* Auto Detect Button */}
+<div className="col-span-2">
+  <button
+    type="button"
+    onClick={() => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const { latitude, longitude } = position.coords;
+            setShop(prev => ({
+              ...prev,
+              address: {
+                ...prev.address,
+                coordinates: { latitude, longitude }
+              }
+            }));
+            toast.success("Location detected successfully!");
+          },
+          error => {
+            toast.error("Failed to detect location: " + error.message);
+          }
+        );
+      } else {
+        toast.error("Geolocation is not supported by this browser.");
+      }
+    }}
+    className="mt-2 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+  >
+    <FiGlobe className="mr-2 h-5 w-5" /> Auto Detect Location
+  </button>
+</div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone:</label>
             <input type="text" value={shop.contact.phone} onChange={e => handleChange(e, ['contact', 'phone'])} className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500" />

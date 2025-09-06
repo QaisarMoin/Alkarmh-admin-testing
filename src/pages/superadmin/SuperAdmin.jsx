@@ -344,6 +344,7 @@ const SuperAdmin = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                     )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                     {activeTab !== 'super_admin' && (
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -358,11 +359,12 @@ const SuperAdmin = () => {
                           <ShopNames managedShops={user.managedShops} />
                         </td>
                       ) : activeTab === 'customer' ? (
-                        <td className="px-6 py-4 align-middle font-medium text-gray-900">{user.name}</td>
+                        <td className="px-6 py-4 align-middle font-medium text-gray-900">{user.name || 'unknown-name'}</td>
                       ) : (
-                        <td className="px-6 py-4 align-middle font-medium text-gray-900">{user.name}</td>
+                        <td className="px-6 py-4 align-middle font-medium text-gray-900">{user.name || 'unknown-name'}</td>
                       )}
-                      <td className="px-6 py-4 align-middle">{user.email}</td>
+                      <td className="px-6 py-4 align-middle">{user.email || 'unknown-email'}</td>
+                      <td className="px-6 py-4 align-middle">{user.profile?.phone || 'unknown-phone'}</td>
                       <td className="px-6 py-4 align-middle">{user.role || 'User'}</td>
                       {activeTab !== 'super_admin' && (
                         <td className="px-6 py-4 align-middle">
@@ -426,16 +428,23 @@ const SuperAdmin = () => {
               <div className="col-span-2 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 font-medium">Name:</span>
-                  <span className="font-bold text-gray-900">{selectedUser.name}</span>
+                  <span className="font-bold text-gray-900">{selectedUser.name || 'unknown-name'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 font-medium">Email:</span>
-                  <span className="text-gray-700">{selectedUser.email}</span>
+                  <span className="text-gray-700">{selectedUser.email || 'unknown-email'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500 font-medium">Phone:</span>
+                  <span className="text-gray-700">{selectedUser.profile?.phone || 'unknown-phone'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 font-medium">Role:</span>
-                  <span className="capitalize">{selectedUser.role}</span>
+                  <span className="capitalize">{selectedUser.role || 'unknown-role'}</span>
                 </div>
+                
+                
+                  
               </div>
               {/* Status section only for shop_admin and super_admin */}
               {selectedUser.role !== 'customer' && (
