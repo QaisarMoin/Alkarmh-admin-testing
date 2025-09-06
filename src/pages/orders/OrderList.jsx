@@ -382,7 +382,7 @@ const OrderList = () => {
                   <th className="px-4 py-3 text-right text-nowrap">Total( QAR )</th>
                   <th className="px-4 py-3 text-center">Items</th>
                   <th className="px-4 py-3 text-left">Status</th>
-                  {!isWorker && <th className="px-4 py-3 text-right align-bottom">Actions</th>}
+                  {isWorker && <th className="px-4 py-3 text-right align-bottom">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -449,7 +449,7 @@ const OrderList = () => {
                         {order.status}
                       </span>
                     </td>
-                    {!isWorker && (
+                    {isWorker && (
                       <td className="px-4 py-4 text-sm font-medium">
                         <div className="flex items-center justify-center h-full w-full">
                           <button
@@ -496,7 +496,7 @@ const OrderList = () => {
         )}
       </div>
       {/* Order Details Modal - Only for non-workers */}
-      {!isWorker && showOrderModal && selectedOrderId && (
+      {isWorker && showOrderModal && selectedOrderId && (
         <OrderDetailsModal
           orderId={selectedOrderId}
           onClose={() => { setShowOrderModal(false); setSelectedOrderId(null); }}
