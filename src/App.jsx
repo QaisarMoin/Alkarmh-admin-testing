@@ -44,6 +44,9 @@ function App() {
                   if (user?.role === "super_admin") {
                     return <Navigate to="/superdashboard" replace />;
                   }
+                  if (user?.role === "worker") {
+                    return <Navigate to="/orders" replace />;
+                  }
                   return <Dashboard />;
                 }}
               />
