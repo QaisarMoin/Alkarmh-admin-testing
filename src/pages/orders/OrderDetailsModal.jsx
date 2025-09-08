@@ -3,6 +3,7 @@ import { FiX, FiShoppingBag, FiUser, FiMail, FiMapPin, FiCreditCard, FiAlertCirc
 import * as api from '../../utils/api';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
 
 const statusColors = {
   'Pending': 'badge-warning',
@@ -30,6 +31,12 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
   const [status, setStatus] = useState('');
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  const { user: currentUser } = useAuth();
+  
+  // Check if user is a worker or shop admin
+  const isWorker = currentUser?.role === 'worker';
+  const isShopAdmin = currentUser?.role === 'shop_admin';
+  
   // Sync status with order after order is fetched
   useEffect(() => {
     if (order && order.status) {
@@ -201,6 +208,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                     className="block w-full rounded-md border border-blue-400 bg-white shadow-sm focus:border-blue-600 focus:ring-blue-500 text-base py-2 px-3 font-semibold text-gray-800"
                     value={status}
                     onChange={e => setStatus(e.target.value)}
+                    disabled={!isWorker && !isShopAdmin}
                   >
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
@@ -214,29 +222,37 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                     <option value="42Hrs">42Hrs</option>
                   </select>
                 </div>
-                <button
-                  className="ml-2 px-4 py-2 rounded bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 disabled:opacity-50 flex items-center"
-                  disabled={isUpdatingStatus || !order || status === order.status}
-                  onClick={async () => {
-                    if (!order || status === order.status) return;
-                    setIsUpdatingStatus(true);
-                    try {
-                      await api.put(`/api/orders/${order._id}/status`, { status });
-                      toast.success('Order status updated!');
-                      setOrder({ ...order, status });
-                      if (onStatusUpdated) onStatusUpdated();
-                    } catch (err) {
-                      toast.error('Failed to update status');
-                    } finally {
-                      setIsUpdatingStatus(false);
-                    }
-                  }}
-                >
-                  {isUpdatingStatus ? (
-                    <FiLoader className="animate-spin mr-2 h-5 w-5" />
-                  ) : null}
-                  Update
-                </button>
+                {(isWorker || isShopAdmin) && (
+                  <button
+                    className="ml-2 px-4 py-2 rounded bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                    disabled={isUpdatingStatus || !order || status === order.status}
+                    onClick={async () => {
+                      if (!order || status === order.status) return;
+                      setIsUpdatingStatus(true);
+                      try {
+                        await api.put(`/api/orders/${order._id}/status`, { 
+                          status,
+                          updatedBy: currentUser._id, // Track who made the update
+                          role: currentUser.role // Track the role of who made the update
+                        });
+                        toast.success('Order status updated!');
+                        setOrder({ ...order, status });
+                        if (onStatusUpdated) onStatusUpdated();
+                      } catch (err) {
+                        console.error('Status update error:', err);
+                        const errorMessage = err.response?.data?.message || 'Failed to update status';
+                        toast.error(errorMessage);
+                      } finally {
+                        setIsUpdatingStatus(false);
+                      }
+                    }}
+                  >
+                    {isUpdatingStatus ? (
+                      <FiLoader className="animate-spin mr-2 h-5 w-5" />
+                    ) : null}
+                    Update Status
+                  </button>
+                )}
               </div>
             </div>
 
