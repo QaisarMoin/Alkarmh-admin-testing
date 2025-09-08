@@ -1,5 +1,6 @@
 // src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -23,6 +24,7 @@ import AllOrdersPage from "./pages/orders/AllOrdersPage";
 import Workers from "./pages/Workers";
 
 function App() {
+  const { user } = useAuth();
   return (
     <Routes>
       {/* Public Routes */}
@@ -48,35 +50,37 @@ function App() {
             }
           />
 
-          {/* Products */}
-          <Route path="products">
-            <Route
-              index
-              element={
-                <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
-                  <ProductList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="add"
-              element={
-                <ProtectedRoute requiredRole="shop_admin">
-                  <AddProduct />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="categories"
-              element={
-                <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
-                  <Categories />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
+          {/* Products - Only for shop admins */}
+          {user?.role !== 'worker' && (
+            <Route path="products">
+              <Route
+                index
+                element={
+                  <ProtectedRoute requiredRole="shop_admin">
+                    <ProductList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="add"
+                element={
+                  <ProtectedRoute requiredRole="shop_admin">
+                    <AddProduct />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="categories"
+                element={
+                  <ProtectedRoute requiredRole="shop_admin">
+                    <Categories />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+          )}
 
-          {/* Orders */}
+          {/* Orders - Accessible to both shop admins and workers */}
           <Route path="orders">
             <Route
               index
@@ -88,35 +92,41 @@ function App() {
             />
           </Route>
 
-          {/* Cart */}
-          <Route
-            path="cart"
-            element={
-              <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
-                <CartPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Cart - Only for shop admins */}
+          {user?.role !== 'worker' && (
+            <Route
+              path="cart"
+              element={
+                <ProtectedRoute requiredRole="shop_admin">
+                  <CartPage />
+                </ProtectedRoute>
+              }
+            />
+          )}
 
-          {/* Wishlist */}
-          <Route
-            path="wishlist"
-            element={
-              <ProtectedRoute requiredRoles={["shop_admin", "worker"]}>
-                <WishlistPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* Wishlist - Only for shop admins */}
+          {user?.role !== 'worker' && (
+            <Route
+              path="wishlist"
+              element={
+                <ProtectedRoute requiredRole="shop_admin">
+                  <WishlistPage />
+                </ProtectedRoute>
+              }
+            />
+          )}
 
-          {/* Settings */}
-          <Route
-            path="settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
+          {/* Settings - Only for shop admins */}
+          {user?.role !== 'worker' && (
+            <Route
+              path="settings"
+              element={
+                <ProtectedRoute requiredRole="shop_admin">
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+          )}
 
           {/* Super Admin Routes */}
           <Route

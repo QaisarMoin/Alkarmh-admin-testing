@@ -109,8 +109,19 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
 
   let menuItems = [];
   
-  // Menu items for shop admin, customer, and worker (workers have read-only access)
-  if (!currentUser || currentUser.role !== 'super_admin') {
+  // Menu items based on user role
+  if (currentUser?.role === 'worker') {
+    // Workers only see Orders
+    menuItems = [
+      {
+        name: 'Orders',
+        icon: <FiPackage className="w-5 h-5" />,
+        path: '/orders',
+        exact: true
+      }
+    ];
+  } else if (!currentUser || currentUser.role !== 'super_admin') {
+    // Shop admin and other non-super admin users
     menuItems = [
       {
         name: 'Dashboard',
@@ -123,12 +134,11 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         icon: <FiShoppingBag className="w-5 h-5" />,
         path: '/products'
       },
-      // Only show Add Product for non-workers
-      ...(currentUser?.role !== 'worker' ? [{
+      {
         name: 'Add Product',
         icon: <IoBagAddOutline className="w-5 h-5" />,
         path: '/products/add'
-      }] : []),
+      },
       {
         name: 'Categories',
         icon: <MdOutlineCategory className="w-5 h-5" />,
@@ -139,8 +149,7 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         icon: <FiPackage className="w-5 h-5" />,
         path: '/orders'
       },
-      // Only show Settings for non-workers
-      ...(currentUser?.role !== 'worker' ? [{
+      {
         name: 'Settings',
         icon: <FiSettings className="w-5 h-5" />,
         path: '/settings'
@@ -151,7 +160,6 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         icon: <FiUsers className="w-5 h-5" />, 
         path: '/workers'
       }] : [])
-      ] : [])
     ];
   }
 

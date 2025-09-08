@@ -69,21 +69,32 @@ const OrderList = () => {
       }
       
       const data = await api.get('/api/orders')
-      // Filter orders for this shop
+      // Process orders
       const allOrders = Array.isArray(data) ? data : (data.data || [])
-     // reverse the orders 
-     
-     const shopOrders = allOrders.filter(
-      order => order.shop === shopId || order.shop?._id === shopId
-    )
-    const reversedOrders = [...shopOrders].reverse()
-    setOrders(reversedOrders)
-    if (statusParam) {
-      const normalizedStatusParam = statusParam.toLowerCase()
-      setFilteredOrders(reversedOrders.filter(order => order.status.toLowerCase() === normalizedStatusParam))
-    } else {
-      setFilteredOrders(reversedOrders)
-    }
+      
+      // Sort orders by createdAt in descending order (newest first)
+      const sortedOrders = [...allOrders].sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0)
+        const dateB = new Date(b.createdAt || 0)
+        return dateB - dateA
+      })
+      
+      // For super admin, show all orders. For others, filter by shop
+      const filteredOrders = currentUser?.role === 'super_admin' 
+        ? sortedOrders 
+        : sortedOrders.filter(order => order.shop === shopId || order.shop?._id === shopId)
+      
+      setOrders(filteredOrders)
+      
+      // Apply status filter if specified
+      if (statusParam) {
+        const normalizedStatusParam = statusParam.toLowerCase()
+        setFilteredOrders(filteredOrders.filter(order => 
+          order.status.toLowerCase() === normalizedStatusParam
+        ))
+      } else {
+        setFilteredOrders(filteredOrders)
+      }
     } catch (err) {
       setOrders([])
       setFilteredOrders([])
