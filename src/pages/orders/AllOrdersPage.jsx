@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as api from '../../utils/api';
 import FancyLoader from '../../components/ui/FancyLoader';
+import OrderDetailsModal from './OrderDetailsModal';
 
 const AllOrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -9,13 +10,20 @@ const AllOrdersPage = () => {
   const [activeTab, setActiveTab] = useState('All Orders');
   const [search, setSearch] = useState('');
   const statusTabs = ['All Orders',"Pending", "Confirmed", "Preparing", "Ready", "Out for Delivery", "Delivered", "Cancelled", "Refunded"];
-  const [currentPage, setCurrentPage] = useState(1)
-  const ORDERS_PER_PAGE = 10
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const ORDERS_PER_PAGE = 10;
 
   useEffect(() => {
     api.get('/api/orders')
       .then((data) => {
-        setOrders(data.data || data);
+        // Sort orders by createdAt in descending order (newest first)
+        const sortedOrders = (data.data || data).sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0);
+          const dateB = new Date(b.createdAt || 0);
+          return dateB - dateA; // Sort in descending order (newest first)
+        });
+        setOrders(sortedOrders);
         setLoading(false);
       })
       .catch(() => {
@@ -25,17 +33,19 @@ const AllOrdersPage = () => {
   }, []);
 
   // Filter orders by tab and search
-  const filteredOrders = (activeTab === 'All Orders' ? orders : orders.filter(order => (order.status || '').toLowerCase() === activeTab.toLowerCase()))
-    .filter(order => {
-      const orderId = order._id || '';
-      const customerName = order.user?.name || '';
-      const customerEmail = order.user?.email || '';
-      return (
-        orderId.toLowerCase().includes(search.toLowerCase()) ||
-        customerName.toLowerCase().includes(search.toLowerCase()) ||
-        customerEmail.toLowerCase().includes(search.toLowerCase())
-      );
-    });
+  const filteredOrders = (activeTab === 'All Orders' 
+    ? [...orders] 
+    : orders.filter(order => (order.status || '').toLowerCase() === activeTab.toLowerCase())
+  ).filter(order => {
+    const orderId = order._id || '';
+    const customerName = order.user?.name || '';
+    const customerEmail = order.user?.email || '';
+    return (
+      orderId.toLowerCase().includes(search.toLowerCase()) ||
+      customerName.toLowerCase().includes(search.toLowerCase()) ||
+      customerEmail.toLowerCase().includes(search.toLowerCase())
+    );
+  });
 
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE)
   const paginatedOrders = filteredOrders.slice((currentPage - 1) * ORDERS_PER_PAGE, currentPage * ORDERS_PER_PAGE)
@@ -87,7 +97,11 @@ const AllOrdersPage = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paginatedOrders.map((order) => (
-                <tr key={order._id}>
+                <tr 
+                  key={order._id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setSelectedOrderId(order._id)}
+                >
                   <td className="px-2 md:px-4 py-2 md:py-4">
                     <div className="flex items-center gap-1">
                       {order.items && order.items.length > 0 ? (
@@ -171,6 +185,26 @@ const AllOrdersPage = () => {
           </button>
         </div>
       </div>
+      
+      {/* Order Details Modal */}
+      {selectedOrderId && (
+        <OrderDetailsModal
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId(null)}
+          onStatusUpdated={() => {
+            // Refresh orders when status is updated
+            api.get('/api/orders')
+              .then((data) => {
+                const sortedOrders = (data.data || data).sort((a, b) => {
+                  const dateA = new Date(a.createdAt || 0);
+                  const dateB = new Date(b.createdAt || 0);
+                  return dateB - dateA;
+                });
+                setOrders(sortedOrders);
+              });
+          }}
+        />
+      )}
     </div>
   );
 };
