@@ -449,18 +449,16 @@ const OrderList = () => {
                         {order.status}
                       </span>
                     </td>
-                    {isWorker && (
-                      <td className="px-4 py-4 text-sm font-medium">
-                        <div className="flex items-center justify-center h-full w-full">
-                          <button
-                            onClick={() => { setSelectedOrderId(order._id); setShowOrderModal(true); }}
-                            className="text-primary-600 hover:text-primary-900 flex justify-center items-center"
-                          >
-                            <FiEye className="h-5 w-5 cursor-pointer" title="View Order Details" />
-                          </button>
-                        </div>
-                      </td>
-                    )}
+                    <td className="px-4 py-4 text-sm font-medium">
+                      <div className="flex items-center justify-center h-full w-full">
+                        <button
+                          onClick={() => { setSelectedOrderId(order._id); setShowOrderModal(true); }}
+                          className="text-primary-600 hover:text-primary-900 flex justify-center items-center"
+                        >
+                          <FiEye className="h-5 w-5 cursor-pointer" title="View Order Details" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -495,8 +493,8 @@ const OrderList = () => {
           </div>
         )}
       </div>
-      {/* Order Details Modal - Only for non-workers */}
-      {isWorker && showOrderModal && selectedOrderId && (
+      {/* Order Details Modal */}
+      {showOrderModal && selectedOrderId && (
         <OrderDetailsModal
           orderId={selectedOrderId}
           onClose={() => { setShowOrderModal(false); setSelectedOrderId(null); }}
