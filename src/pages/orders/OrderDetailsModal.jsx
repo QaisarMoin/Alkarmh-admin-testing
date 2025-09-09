@@ -193,7 +193,14 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <span>Payment Status:</span>
-                  <span className="font-medium capitalize">{order.paymentInfo?.status || 'N/A'}</span>
+                  <span className={`font-medium capitalize px-2 py-1 rounded-full text-xs ${
+                    order.paymentInfo?.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    order.paymentInfo?.status === 'refunded' ? 'bg-red-100 text-red-800' :
+                    order.paymentInfo?.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {order.paymentInfo?.status || 'N/A'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   <span>Delivery Fee:</span>
@@ -219,7 +226,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                     <option value="cancelled">Cancelled</option>
                     <option value="refunded">Refunded</option>
                     <option value="24Hrs">24Hrs</option>
-                    <option value="42Hrs">42Hrs</option>
+                    <option value="48Hrs">48Hrs</option>
                   </select>
                 </div>
                 {(isWorker || isShopAdmin) && (
@@ -230,13 +237,35 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                       if (!order || status === order.status) return;
                       setIsUpdatingStatus(true);
                       try {
+                        // Determine payment status based on order status
+                        let paymentStatus = order.paymentInfo?.status || 'pending';
+                        
+                        if (status === 'delivered') {
+                          paymentStatus = 'completed';
+                        } else if (status === 'cancelled' || status === 'refunded') {
+                          paymentStatus = 'refunded';
+                        }
+
                         await api.put(`/api/orders/${order._id}/status`, { 
                           status,
+                          paymentStatus, // Include payment status update
                           updatedBy: currentUser._id, // Track who made the update
                           role: currentUser.role // Track the role of who made the update
                         });
+                        
                         toast.success('Order status updated!');
-                        setOrder({ ...order, status });
+                        
+                        // Update local state with new status and payment status
+                        const updatedOrder = {
+                          ...order, 
+                          status,
+                          paymentInfo: {
+                            ...order.paymentInfo,
+                            status: paymentStatus
+                          }
+                        };
+                        setOrder(updatedOrder);
+                        
                         if (onStatusUpdated) onStatusUpdated();
                       } catch (err) {
                         console.error('Status update error:', err);
