@@ -62,6 +62,8 @@ const SuperAdmin = () => {
   const [shopStatusLoading, setShopStatusLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1)
   const USERS_PER_PAGE = 10
+  const [shopRating, setShopRating] = useState(0);
+  const [isUpdatingRating, setIsUpdatingRating] = useState(false);
 
   const statusOptions = [
     { value: 'Active', label: 'Active' },
@@ -148,7 +150,9 @@ const SuperAdmin = () => {
         if (shopIdForInfo) {
           try {
             const shopData = await api.get(`/api/shops/${typeof shopIdForInfo === 'object' && shopIdForInfo._id ? shopIdForInfo._id : shopIdForInfo}`);
-            setShopInfo(shopData.data || shopData);
+            const shop = shopData.data || shopData;
+            setShopInfo(shop);
+            setShopRating(shop.statistics?.rating || 0);
           } catch (err) {
             setShopInfo({ name: 'N/A' });
           }
@@ -178,7 +182,9 @@ const SuperAdmin = () => {
       if (shopIdForInfo) {
         try {
           const shopData = await api.get(`/api/shops/${typeof shopIdForInfo === 'object' && shopIdForInfo._id ? shopIdForInfo._id : shopIdForInfo}`);
-          setShopInfo(shopData.data || shopData);
+          const shop = shopData.data || shopData;
+          setShopInfo(shop);
+          setShopRating(shop.statistics.rating || 0);
         } catch (err) {
           setShopInfo({ name: 'N/A' });
         }
@@ -193,6 +199,8 @@ const SuperAdmin = () => {
     setEditUser(null);
     setIsModalOpen(false);
     setShopInfo(null);
+    setShopRating(0);
+    setIsUpdatingRating(false);
   };
 
   const handleEditChange = (e) => {
@@ -229,6 +237,43 @@ const SuperAdmin = () => {
       }
     } else {
       closeModal();
+    }
+  };
+
+  const handleRatingUpdate = async () => {
+    if (!shopInfo || !selectedUser || selectedUser.role !== 'shop_admin') return;
+    
+    let shopId = null;
+    if (Array.isArray(selectedUser.managedShop) && selectedUser.managedShop.length > 0) {
+      shopId = selectedUser.managedShop[0];
+    } else if (Array.isArray(selectedUser.managedShops) && selectedUser.managedShops.length > 0) {
+      shopId = selectedUser.managedShops[0];
+    } else if (selectedUser.shop) {
+      shopId = selectedUser.shop;
+    }
+    
+    if (!shopId) {
+      toast.error('No shop found for this admin.', { position: 'bottom-right' });
+      return;
+    }
+    
+    setIsUpdatingRating(true);
+    try {
+      await api.put(`/api/shops/${typeof shopId === 'object' && shopId._id ? shopId._id : shopId}/rating`, { 
+        rating: shopRating 
+      });
+      toast.success('Shop rating updated successfully!', { position: 'bottom-right' });
+      setShopInfo(prev => ({ 
+        ...prev, 
+        statistics: { 
+          ...prev.statistics, 
+          rating: shopRating 
+        } 
+      }));
+    } catch (err) {
+      toast.error('Failed to update shop rating.', { position: 'bottom-right' });
+    } finally {
+      setIsUpdatingRating(false);
     }
   };
 
@@ -533,14 +578,51 @@ const SuperAdmin = () => {
             {/* Shop Info for shop_admin only */}
             {selectedUser.role === 'shop_admin' && (
               <div className="mt-6">
-                <div className="font-bold text-gray-700 mb-2">Shop Info</div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-500 font-medium">Shop Name:</span>
-                  <span className="font-semibold text-gray-900">
-                    {shopInfo
-                      ? getDisplayName(shopInfo.name)
-                      : 'Loading...'}
-                  </span>
+                <div className="font-bold text-gray-700 mb-4">Shop Info</div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 font-medium">Shop Name:</span>
+                    <span className="font-semibold text-gray-900">
+                      {shopInfo
+                        ? getDisplayName(shopInfo.name)
+                        : 'Loading...'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 font-medium">Current Rating:</span>
+                    <span className="font-semibold text-gray-900">
+                      {shopInfo?.statistics?.rating ? `${shopInfo.statistics.rating}/5` : 'No rating'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-500 font-medium">Update Rating:</span>
+                    <select
+                      className="form-input px-3 py-1 rounded border border-gray-300 text-sm"
+                      value={shopRating}
+                      onChange={e => setShopRating(Number(e.target.value))}
+                      disabled={isUpdatingRating}
+                    >
+                      <option value={0}>No Rating</option>
+                      <option value={1}>1 Star</option>
+                      <option value={2}>2 Stars</option>
+                      <option value={3}>3 Stars</option>
+                      <option value={4}>4 Stars</option>
+                      <option value={5}>5 Stars</option>
+                    </select>
+                    <button
+                      className="px-4 py-1 rounded bg-blue-600 text-white text-sm font-medium shadow hover:bg-blue-700 disabled:opacity-50 flex items-center"
+                      onClick={handleRatingUpdate}
+                      disabled={isUpdatingRating || shopRating === (shopInfo?.statistics?.rating || 0)}
+                    >
+                      {isUpdatingRating && (
+                        <svg className="animate-spin h-4 w-4 mr-1 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                      )}
+                      Update
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
