@@ -33,7 +33,7 @@ const OrderList = () => {
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const ORDERS_PER_PAGE = 30
+  const ORDERS_PER_PAGE = 10
   
   // Check if user is a worker (read-only access)
   const isWorker = currentUser?.role === 'worker';
