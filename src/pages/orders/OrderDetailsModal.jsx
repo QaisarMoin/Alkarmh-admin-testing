@@ -11,6 +11,8 @@ const statusColors = {
   'Shipped': 'badge-primary',
   'Delivered': 'badge-success',
   'Cancelled': 'badge-error',
+  'Delivered in 24 Hours': 'badge-success',
+  'Delivered in 48 Hours': 'badge-success',
 };
 
 // Helper to get a display name from a multilingual object or string
@@ -225,8 +227,9 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
                     <option value="refunded">Refunded</option>
-                    <option value="24Hrs">24Hrs</option>
-                    <option value="48Hrs">48Hrs</option>
+                    <option value="Delivered in 24 Hours">Delivered in 24 Hours</option>
+                    <option value="Delivered in 48 Hours">Delivered in 48 Hours</option>
+
                   </select>
                 </div>
                 {(isWorker || isShopAdmin) && (
@@ -242,9 +245,14 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                         
                         if (status === 'delivered') {
                           paymentStatus = 'completed';
-                        } else if (status === 'cancelled' || status === 'refunded') {
+                        } else if (status === 'refunded') {
                           paymentStatus = 'refunded';
+                        } else if (status === 'cancelled') {
+                          paymentStatus = 'cancelled';
                         }
+                        
+
+                      
 
                         await api.put(`/api/orders/${order._id}/status`, { 
                           status,
