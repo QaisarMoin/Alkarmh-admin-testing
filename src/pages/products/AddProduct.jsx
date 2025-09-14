@@ -731,7 +731,7 @@ const AddProduct = () => {
                 </div>
                 <div className="flex items-center gap-4 mt-6">
                   <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={productData.isOnSale} onChange={e => handleChange(e, ['isOnSale'])} /> On Sale
+                    <input type="checkbox" checked={productData.isOnSale} onChange={e => handleChange(e, ['isOnSale'])} /> Free Delivery
                   </label>
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={productData.featured} onChange={e => handleChange(e, ['featured'])} /> Featured

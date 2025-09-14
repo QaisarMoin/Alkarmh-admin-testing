@@ -633,7 +633,7 @@ const EditProductModal = ({ productId, categories, onClose, onSave }) => {
                 checked={form.isOnSale}
                 onChange={handleChange}
               />
-              <label htmlFor="isOnSale">On Sale</label>
+              <label htmlFor="isOnSale">Free Delivery</label>
             </div>
             <div className="flex items-center gap-2">
               <input
