@@ -150,16 +150,23 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         path: '/orders'
       },
       {
+        name: 'Customers',
+        icon: <FiUsers className="w-5 h-5" />,
+        path: '/customers'
+      },
+      {
         name: 'Settings',
         icon: <FiSettings className="w-5 h-5" />,
         path: '/settings'
       },
+
       // Add Workers tab for shop admins
       ...(currentUser?.role === 'shop_admin' ? [{
         name: 'Workers',
         icon: <FiUsers className="w-5 h-5" />, 
         path: '/workers'
       }] : [])
+      
     ];
   }
 

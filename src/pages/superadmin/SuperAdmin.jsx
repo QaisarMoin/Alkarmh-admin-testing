@@ -64,6 +64,12 @@ const SuperAdmin = () => {
   const USERS_PER_PAGE = 10
   const [shopRating, setShopRating] = useState(0);
   const [isUpdatingRating, setIsUpdatingRating] = useState(false);
+  const [shopTags, setShopTags] = useState({
+    last100orderwithoutcomplaints: false,
+    Bestsellers: false,
+    FrequentlyReordered: false,
+  });
+  const [isUpdatingTags, setIsUpdatingTags] = useState(false);
 
   const statusOptions = [
     { value: 'Active', label: 'Active' },
@@ -185,6 +191,14 @@ const SuperAdmin = () => {
           const shop = shopData.data || shopData;
           setShopInfo(shop);
           setShopRating(shop.statistics.rating || 0);
+
+          setShopTags(
+            shop.tags || {
+              last100orderwithoutcomplaints: false,
+              Bestsellers: false,
+              FrequentlyReordered: false,
+            }
+          );
         } catch (err) {
           setShopInfo({ name: 'N/A' });
         }
@@ -207,7 +221,38 @@ const SuperAdmin = () => {
     const { name, value } = e.target;
     setEditUser((prev) => ({ ...prev, [name]: value }));
   };
-
+  const handleTagsUpdate = async () => {
+    if (!shopInfo || !selectedUser || selectedUser.role !== "shop_admin") return;
+  
+    let shopId = null;
+    if (Array.isArray(selectedUser.managedShop) && selectedUser.managedShop.length > 0) {
+      shopId = selectedUser.managedShop[0];
+    } else if (Array.isArray(selectedUser.managedShops) && selectedUser.managedShops.length > 0) {
+      shopId = selectedUser.managedShops[0];
+    } else if (selectedUser.shop) {
+      shopId = selectedUser.shop;
+    }
+  
+    if (!shopId) {
+      toast.error("No shop found for this admin.");
+      return;
+    }
+  
+    setIsUpdatingTags(true);
+    try {
+      await api.put(
+        `/api/shops/${typeof shopId === "object" && shopId._id ? shopId._id : shopId}/tags`,
+        { tags: shopTags }
+      );
+      toast.success("Shop tags updated successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message,);
+    } finally {
+      setIsUpdatingTags(false);
+    }
+  };
+  
   const handleSave = async () => {
     if (editUser && editUser.role === 'shop_admin') {
       let shopId = null;
@@ -594,6 +639,32 @@ const SuperAdmin = () => {
                       {shopInfo?.statistics?.rating ? `${shopInfo.statistics.rating}/5` : 'No rating'}
                     </span>
                   </div>
+                  
+                  <div className="mt-6">
+  <div className="font-bold text-gray-700 mb-4">Shop Tags</div>
+  <div className="space-y-2">
+    {Object.keys(shopTags).map((tag) => (
+      <label key={tag} className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={shopTags[tag]}
+          onChange={(e) =>
+            setShopTags((prev) => ({ ...prev, [tag]: e.target.checked }))
+          }
+        />
+        <span className="capitalize">{tag}</span>
+      </label>
+    ))}
+  </div>
+  <button
+    className="mt-3 px-4 py-1 rounded bg-blue-600 text-white text-sm font-medium shadow hover:bg-blue-700 disabled:opacity-50"
+    onClick={handleTagsUpdate}
+    disabled={isUpdatingTags}
+  >
+    {isUpdatingTags ? "Updating..." : "Update Tags"}
+  </button>
+</div>
+
                   <div className="flex items-center gap-3">
                     <span className="text-gray-500 font-medium">Update Rating:</span>
                     <select
