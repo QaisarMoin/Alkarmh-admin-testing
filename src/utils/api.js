@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const apiClient = axios.create({
 
-  //  baseURL: 'http://localhost:8080', // Make sure this matches your backend URL
+// baseURL: 'http://localhost:4000', // Make sure this matches your backend URL
  baseURL: 'https://server.alkaramh.com', // Make sure this matches your backend URL
 
 });
@@ -27,12 +27,17 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response, // Simply return the response if it's successful
   (error) => {
+    if (error.response.status === 401){
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
+    }
     // Handle global errors here
     console.error('Response error interceptor:', error.response || error.message || error);
     // Example: if (error.response && error.response.status === 401) { /* redirect to login */ }
     return Promise.reject(error); // Important to re-throw the error so it can be caught by the calling function
   }
 );
+
 
 export const get = async (path, params = {}) => {
   try {
