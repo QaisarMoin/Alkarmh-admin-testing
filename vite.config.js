@@ -8,7 +8,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://alkarahm.onrender.com', // Backend server
-        // target: 'http://localhost:8080', // Backend server
+         target: 'https://alkarahm.onrender.com', // Backend server
+        //target: 'http://localhost:8080', // Backend server
         changeOrigin: true, }}}
 })

@@ -7,6 +7,8 @@ function Workers() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, workerId: null, workerName: '' });
 
   // Determine shopId for the current admin
   const shopId = user?.managedShops?.[0]?._id || user?.managedShops?.[0];
@@ -43,20 +45,15 @@ function Workers() {
     fetchWorkers();
   }, [shopId, authToken]);
 
-  //   const approveWorker = (workerId) => {
-  //     fetch(`/api/shops/${shopId}/workers/${workerId}/approve`, {
-  //       method: 'PUT',
-  //       headers: { Authorization: `Bearer ${authToken}` }
-  //     })
-  //       .then(res => res.json())
-  //       .then(() => {
-  //         setWorkers(workers =>
-  //           workers.map(w =>
-  //             w._id === workerId ? { ...w, isActive: true } : w
-  //           )
-  //         );
-  //       });
-  //   };
+  // Auto-hide success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const toggleWorkerStatus = async (workerId) => {
     try {
@@ -74,13 +71,55 @@ function Workers() {
     }
   };
 
+  const openDeleteModal = (workerId, workerName) => {
+    setDeleteModal({ isOpen: true, workerId, workerName });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, workerId: null, workerName: '' });
+  };
+
+  const confirmDeleteWorker = async () => {
+    try {
+      await api.del(`/api/shops/${shopId}/workers/${deleteModal.workerId}`);
+      setWorkers((workers) => workers.filter((w) => w._id !== deleteModal.workerId));
+      setSuccessMessage(`Worker "${deleteModal.workerName}" deleted successfully!`);
+      setError(null); // Clear any existing errors
+      closeDeleteModal();
+    } catch (err) {
+      console.error("Error deleting worker:", err);
+      setError("Failed to delete worker");
+      closeDeleteModal();
+    }
+  };
+
   if (!shopId) return <div>No shop found for this admin.</div>;
   if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-6">Workers</h2>
+      
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md flex items-center justify-between">
+          <div className="flex items-center">
+            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {error}
+          </div>
+          <button 
+            onClick={() => setError(null)}
+            className="text-red-700 hover:text-red-900"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {workers.length === 0 ? (
         <div className="text-gray-500">No workers found for this shop.</div>
       ) : (
@@ -98,7 +137,7 @@ function Workers() {
                   Status
                 </th>
                 <th className="py-3 px-6 text-left font-bold text-gray-700 tracking-wider">
-                  Action
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -119,16 +158,38 @@ function Workers() {
                     )}
                   </td>
                   <td className="py-3 px-6 border-b">
-                    <button
-                      className={`px-4 py-1 rounded transition mr-2 ${
-                        worker.isActive
-                          ? "bg-yellow-500 text-white hover:bg-yellow-600"
-                          : "bg-green-500 text-white hover:bg-green-600"
-                      }`}
-                      onClick={() => toggleWorkerStatus(worker._id)}
-                    >
-                      {worker.isActive ? "Deactivate" : "Activate"}
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        className={`px-4 py-1 rounded transition ${
+                          worker.isActive
+                            ? "bg-yellow-500 text-white hover:bg-yellow-600"
+                            : "bg-green-500 text-white hover:bg-green-600"
+                        }`}
+                        onClick={() => toggleWorkerStatus(worker._id)}
+                      >
+                        {worker.isActive ? "Deactivate" : "Activate"}
+                      </button>
+                      <button
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-full transition-colors"
+                        onClick={() => openDeleteModal(worker._id, worker.name)}
+                        title="Delete worker"
+                      >
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          className="h-5 w-5" 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -136,6 +197,91 @@ function Workers() {
           </table>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <svg 
+                  className="h-6 w-6 text-red-600" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" 
+                  />
+                </svg>
+              </div>
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Delete Worker
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Are you sure you want to delete <strong>{deleteModal.workerName}</strong>? 
+                This action cannot be undone.
+              </p>
+              <div className="flex justify-center space-x-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                  onClick={closeDeleteModal}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  onClick={confirmDeleteWorker}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Toast Success Message */}
+      {successMessage && (
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 z-50 animate-slide-up">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{successMessage}</span>
+          <button 
+            onClick={() => setSuccessMessage(null)}
+            className="text-white hover:text-gray-200 ml-2"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Add custom CSS for animation */}
+      <style jsx>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
