@@ -22,6 +22,7 @@ import AllProductsPage from "./pages/AllProductsPage";
 import AllCategoriesPage from "./pages/products/AllCategoriesPage";
 import AllOrdersPage from "./pages/orders/AllOrdersPage";
 import Workers from "./pages/Workers";
+import Customers from "./pages/Customers";
 
 function App() {
   const { user } = useAuth();
@@ -178,6 +179,14 @@ function App() {
             element={
               <ProtectedRoute requiredRole="shop_admin">
                 <Workers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="customers"
+            element={
+              <ProtectedRoute requiredRole="shop_admin">
+                <Customers />
               </ProtectedRoute>
             }
           />
