@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const apiClient = axios.create({
 
-baseURL: 'http://localhost:4000', // Make sure this matches your backend URL
-// baseURL: 'https://server.alkaramh.com', // Make sure this matches your backend URL
+// baseURL: 'http://localhost:4000', // Make sure this matches your backend URL
+baseURL: 'https://server.alkaramh.com', // Make sure this matches your backend URL
 
 });
 
