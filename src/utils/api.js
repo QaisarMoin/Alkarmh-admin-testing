@@ -1,15 +1,9 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-
-<<<<<<< HEAD
-baseURL: 'http://localhost:4000', // Make sure this matches your backend URL
-//baseURL: 'https://server.alkaramh.com', // Make sure this matches your backend URL
-=======
 //baseURL: 'http://localhost:4000', // Make sure this matches your backend URL
  baseURL: 'https://server.alkaramh.com', // Make sure this matches your backend URL
->>>>>>> 6747e97dfc576972af6506127c670872d4f049c8
-
+ 
 });
 
 // Add a request interceptor to include the token 
