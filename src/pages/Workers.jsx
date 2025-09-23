@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { toast } from 'react-toastify';
 import * as api from "../utils/api";
 
 function Workers() {
@@ -7,7 +8,6 @@ function Workers() {
   const [workers, setWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, workerId: null, workerName: '' });
 
   // Determine shopId for the current admin
@@ -45,16 +45,6 @@ function Workers() {
     fetchWorkers();
   }, [shopId, authToken]);
 
-  // Auto-hide success message after 3 seconds
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => {
-        setSuccessMessage(null);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
-
   const toggleWorkerStatus = async (workerId) => {
     try {
       const data = await api.put(
@@ -65,9 +55,11 @@ function Workers() {
           w._id === workerId ? { ...w, isActive: data.isActive } : w
         )
       );
+      const worker = workers.find(w => w._id === workerId);
+      toast.success(`Worker "${worker.name}" ${data.isActive ? 'activated' : 'deactivated'} successfully!`);
     } catch (err) {
       console.error("Error toggling worker status:", err);
-      setError("Failed to update worker status");
+      toast.error("Failed to update worker status");
     }
   };
 
@@ -83,43 +75,23 @@ function Workers() {
     try {
       await api.del(`/api/shops/${shopId}/workers/${deleteModal.workerId}`);
       setWorkers((workers) => workers.filter((w) => w._id !== deleteModal.workerId));
-      setSuccessMessage(`Worker "${deleteModal.workerName}" deleted successfully!`);
-      setError(null); // Clear any existing errors
+      toast.success(`Worker "${deleteModal.workerName}" deleted successfully!`);
+      setError(null);
       closeDeleteModal();
     } catch (err) {
       console.error("Error deleting worker:", err);
-      setError("Failed to delete worker");
+      toast.error("Failed to delete worker");
       closeDeleteModal();
     }
   };
 
   if (!shopId) return <div>No shop found for this admin.</div>;
   if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
 
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-6">Workers</h2>
-      
-      {/* Error Alert */}
-      {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md flex items-center justify-between">
-          <div className="flex items-center">
-            <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {error}
-          </div>
-          <button 
-            onClick={() => setError(null)}
-            className="text-red-700 hover:text-red-900"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
       {workers.length === 0 ? (
         <div className="text-gray-500">No workers found for this shop.</div>
       ) : (
@@ -224,7 +196,7 @@ function Workers() {
                 Delete Worker
               </h3>
               <p className="text-sm text-gray-500 mb-6">
-                Are you sure you want to delete <strong>{deleteModal.workerName}</strong>? 
+                Are you sure you want to delete <strong>{deleteModal.workerName}</strong>? <br></br>
                 This action cannot be undone.
               </p>
               <div className="flex justify-center space-x-3">
@@ -247,41 +219,6 @@ function Workers() {
           </div>
         </div>
       )}
-
-      {/* Bottom Toast Success Message */}
-      {successMessage && (
-        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2 z-50 animate-slide-up">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          <span>{successMessage}</span>
-          <button 
-            onClick={() => setSuccessMessage(null)}
-            className="text-white hover:text-gray-200 ml-2"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
-
-      {/* Add custom CSS for animation */}
-      <style jsx>{`
-        @keyframes slide-up {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 }
