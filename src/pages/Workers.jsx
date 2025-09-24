@@ -130,7 +130,7 @@ function Workers() {
                     )}
                   </td>
                   <td className="py-3 px-6 border-b">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center justify-between">
                       <button
                         className={`px-4 py-1 rounded transition ${
                           worker.isActive

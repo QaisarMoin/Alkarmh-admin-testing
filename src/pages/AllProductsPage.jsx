@@ -27,6 +27,7 @@ const AllProductsPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [shops, setShops] = useState([]);
   const [currentPage, setCurrentPage] = useState(1)
   const PRODUCTS_PER_PAGE = 10
   
@@ -123,6 +124,33 @@ const AllProductsPage = () => {
         if (data && data.data) setCategories(data.data);
       })
       .catch(() => setCategories([]));
+    
+    // Fetch shops for dropdowns
+    api.get('/api/auth/alluser')
+      .then((data) => {
+        if (data && (data.data || data)) {
+          const allUsers = data.data || data;
+          const shopAdmins = allUsers.filter(user => user.role === 'shop_admin');
+          // Extract unique shops from managedShops
+          const shopIds = [...new Set(shopAdmins.flatMap(user => 
+            Array.isArray(user.managedShops) ? user.managedShops : []
+          ).filter(Boolean))];
+          
+          // Fetch shop details for each shop ID
+          Promise.all(shopIds.map(async (shopId) => {
+            try {
+              const shopData = await api.get(`/api/shops/${typeof shopId === 'object' && shopId._id ? shopId._id : shopId}`);
+              return shopData.data || shopData;
+            } catch {
+              return null;
+            }
+          })).then(shopDetails => {
+            const validShops = shopDetails.filter(shop => shop && shop._id);
+            setShops(validShops);
+          });
+        }
+      })
+      .catch(() => setShops([]));
   }, []);
 
   // Handle search and filter
@@ -144,6 +172,15 @@ const AllProductsPage = () => {
           return product.category?._id === filters.category;
         }
         return product.category === filters.category;
+      });
+    }
+    
+    if (filters.shop) {
+      results = results.filter(product => {
+        if (typeof product.shop === 'object' && product.shop !== null) {
+          return product.shop?._id === filters.shop;
+        }
+        return product.shop === filters.shop;
       });
     }
     
@@ -194,6 +231,13 @@ const AllProductsPage = () => {
       type: 'select',
       options: categories
         .map(c => ({ value: c._id, label: c.name?.en || c.name || c._id || 'N/A' })),
+    },
+    {
+      name: 'shop',
+      label: 'Shop',
+      type: 'select',
+      options: shops
+        .map(s => ({ value: s._id, label: s.name?.en || s.name || s._id || 'N/A' })),
     },
     {
       name: 'status',
