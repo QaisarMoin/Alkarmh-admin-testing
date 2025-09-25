@@ -408,8 +408,8 @@ const ProductList = () => {
                 <tr>
                   <th className="px-4 py-3 text-left">Product</th>
                   {/* <th className="px-4 py-3 text-left">SKU</th> */}
-                  <th className="px-4 py-3 text-left">Category</th>
-                  <th className="px-4 py-3 text-right">Price (QAR)</th>
+                  <th className="px-2 py-3 text-left">Category</th>
+                  <th className="px-2 py-3 text-right">Price (QAR)</th>
                   <th className="px-4 py-3 text-center">Stock</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   {!isWorker && (
@@ -456,7 +456,7 @@ const ProductList = () => {
                       </div>
                     </td>
                     {/* <td className="px-4 py-4 text-sm text-gray-500">{product.sku}</td> */}
-                    <td className="px-4 py-4 text-sm text-gray-500">
+                    <td className="px-2 py-4 text-sm text-gray-500">
                       {typeof product.category === "object"
                         ? product.category?.name?.en ||
                           product.category?.name ||
@@ -464,7 +464,7 @@ const ProductList = () => {
                           "N/A"
                         : product.category || "N/A"}
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900 text-right font-medium">
+                    <td className="px-2 py-4 text-sm text-gray-900 text-right font-medium">
                       {product.variants &&
                       product.variants[0] &&
                       typeof product.variants[0].price !== "undefined"
@@ -495,7 +495,7 @@ const ProductList = () => {
                     </td>
                     <td className="px-4 py-4 text-sm">
                       <span
-                        className={`badge ${
+                        className={`badge whitespace-nowrap ${
                           product.status === "Active"
                             ? "badge-success"
                             : product.status === "Out of Stock"

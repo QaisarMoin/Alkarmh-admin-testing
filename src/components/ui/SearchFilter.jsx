@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiSearch, FiFilter, FiX } from 'react-icons/fi'
+import { FiSearch, FiFilter, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 
 const SearchFilter = ({ 
   onSearch, 
@@ -61,42 +61,44 @@ const SearchFilter = ({
 
   return (
     <div className="w-full">
-      <form onSubmit={handleSearch} className="flex items-center">
-        <div className="relative flex-grow">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FiSearch className="h-5 w-5 text-gray-400" />
-          </div>
+      <div className="flex items-center w-full">
+        <div className="relative flex-1">
           <input
             type="text"
-            className="form-input pl-10 pr-4 py-2 w-full"
+            className="form-input pr-10 pl-6 py-2 w-full"
             placeholder={placeholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch(e)}
           />
+          <button 
+            type="button"
+            onClick={(e) => handleSearch(e)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <FiSearch className="h-5 w-5" />
+          </button>
         </div>
-        
-        <button 
-          type="submit" 
-          className="btn btn-primary ml-2"
-        >
-          Search
-        </button>
         
         {showFilterButton && (
           <button 
             type="button"
             onClick={toggleFilters}
-            className="ml-2 btn btn-secondary flex items-center"
+            className={`ml-4 px-14 py-2 flex items-center flex-shrink-0 rounded-lg text-md font-medium transition-colors ${
+              showFilters || Object.keys(selectedFilters).length > 0
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
           >
             Filters
           </button>
         )}
-      </form>
+      </div>
       
       {/* Filters Panel */}
       {showFilters && filters.length > 0 && (
-        <div className="bg-white p-4 rounded-md shadow-subtle mb-4 animate-fade-in">
-          <div className="flex justify-between items-center mb-3">
+        <div className="bg-white p-3 rounded-md shadow-subtle mb-4 animate-fade-in">
+          <div className="flex justify-between items-center mb-2">
             <h3 className="text-sm font-medium text-gray-700">Filters</h3>
             
             <div className="flex items-center">
@@ -119,32 +121,37 @@ const SearchFilter = ({
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl">
             {filters.map((filter) => (
               <div key={filter.name} className="form-group mb-0">
-                <label htmlFor={filter.name} className="form-label">
+                <label htmlFor={filter.name} className="form-label text-sm mb-2 font-medium">
                   {filter.label}
                 </label>
                 
                 {filter.type === 'select' ? (
-                  <select
-                    id={filter.name}
-                    className="form-input"
-                    value={selectedFilters[filter.name] || ''}
-                    onChange={(e) => handleFilterChange(filter.name, e.target.value)}
-                  >
-                    <option value="">All</option>
-                    {filter.options.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      id={filter.name}
+                      className="form-input pr-12 pl-4 py-3 text-base w-full min-w-[200px] appearance-none"
+                      value={selectedFilters[filter.name] || ''}
+                      onChange={(e) => handleFilterChange(filter.name, e.target.value)}
+                    >
+                      <option value="">All</option>
+                      {filter.options.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                      <FiChevronDown className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
                 ) : filter.type === 'date' ? (
                   <input
                     type="date"
                     id={filter.name}
-                    className="form-input"
+                    className="form-input py-3 text-base w-full min-w-[200px]"
                     value={selectedFilters[filter.name] || ''}
                     onChange={(e) => handleFilterChange(filter.name, e.target.value)}
                   />
@@ -152,7 +159,7 @@ const SearchFilter = ({
                   <input
                     type="text"
                     id={filter.name}
-                    className="form-input"
+                    className="form-input py-3 text-base w-full min-w-[200px]"
                     value={selectedFilters[filter.name] || ''}
                     onChange={(e) => handleFilterChange(filter.name, e.target.value)}
                     placeholder={filter.placeholder || ''}
@@ -169,7 +176,7 @@ const SearchFilter = ({
                 onSearch(query, selectedFilters)
                 setShowFilters(false)
               }}
-              className="btn btn-primary"
+              className="btn btn-primary py-2 px-6 text-base font-medium"
             >
               Apply Filters
             </button>
