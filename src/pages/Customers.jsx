@@ -4,6 +4,7 @@ import { FaShoppingCart, FaHeart, FaCrown, FaUser } from "react-icons/fa";
 import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
 import SearchFilter from '../components/ui/SearchFilter';
+import PageHeader from '../components/ui/PageHeader';
 const Customers = () => {
 const { user: currentUser } = useAuth();
 const [shopPremiumCustomers, setShopPremiumCustomers] = useState([]);
@@ -279,15 +280,14 @@ const fetchShopPremiumCustomers = async () => {
 
   return (
     <div className="w-full p-8 bg-white rounded-xl shadow-lg mt-8">
-      <div className="mb-6">
-        <div className="text-sm text-gray-400 mb-2 flex items-center gap-2">
-          <span>Dashboard</span>
-          <span className="mx-1">&gt;</span>
-          <span className="text-primary-700 font-semibold">Customers</span>
-        </div>
-        <h1 className="text-3xl font-bold mb-1 text-primary-900">Customer Management</h1>
-        <p className="text-lg text-gray-600 mb-4">Manage customers and premium memberships</p>
-      </div>
+      <PageHeader 
+        title="Customer Management"
+        subtitle="Manage customers and premium memberships"
+        breadcrumbs={[
+          { text: 'Dashboard', link: '/' },
+          { text: 'Customers' }
+        ]}
+      />
 
       {/* Search and Filter Controls */}
       <div className="mb-6">

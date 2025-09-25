@@ -11,9 +11,10 @@ import {
   FiChevronRight,
   FiMenu
 } from 'react-icons/fi'
-import { IoBagAddOutline } from "react-icons/io5";
-import { RiAdminFill } from "react-icons/ri";
+import { IoBagAddOutline, IoStorefrontOutline } from "react-icons/io5";
+import { RiAdminFill, RiShieldUserLine } from "react-icons/ri";
 import { MdOutlineCategory } from "react-icons/md";
+import { FaCrown } from "react-icons/fa";
 import { useState, useEffect, createContext, useContext } from 'react'
 import logo from '../assets/logo.svg'
 import { useAuth } from '../contexts/AuthContext';
@@ -179,9 +180,19 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         path: '/superdashboard'
       },
       {
+        name: 'Customers',
+        icon: <FiUsers className="w-5 h-5" />, 
+        path: '/superadmin/customers'
+      },
+      {
+        name: 'Shop Admins',
+        icon: <IoStorefrontOutline className="w-5 h-5" />, 
+        path: '/superadmin/shop-admins'
+      },
+      {
         name: 'Super Admin',
         icon: <RiAdminFill className="w-5 h-5" />, 
-        path: '/superadmin'
+        path: '/superadmin/management'
       },
       {
         name: 'All Products',
