@@ -89,7 +89,8 @@ const fetchShopPremiumCustomers = async () => {
       options: [
         { value: 'cart-fav', label: 'Cart + Favorites' },
         { value: 'cart', label: 'Cart Only' },
-        { value: 'fav', label: 'Favorites Only' }
+        { value: 'fav', label: 'Favorites Only' },
+        { value: 'others', label: 'Others' }
       ]
     }
   ];
@@ -151,7 +152,8 @@ const fetchShopPremiumCustomers = async () => {
       const matchesPriority = !priorityFilter || 
                              (priorityFilter === 'cart-fav' && hasCart && hasFavorites) ||
                              (priorityFilter === 'cart' && hasCart && !hasFavorites) ||
-                             (priorityFilter === 'fav' && hasFavorites && !hasCart);
+                             (priorityFilter === 'fav' && hasFavorites && !hasCart) ||
+                             (priorityFilter === 'others' && !hasCart && !hasFavorites);
       
       return matchesSearch && matchesStatus && matchesPriority;
     })
