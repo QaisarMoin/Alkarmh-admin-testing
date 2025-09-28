@@ -321,7 +321,8 @@ const fetchShopPremiumCustomers = async () => {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -345,9 +346,9 @@ const fetchShopPremiumCustomers = async () => {
                       <td className="px-6 py-4 align-middle text-sm text-gray-900">
                         {customer.profile?.phone || 'Unknown Phone'}
                       </td>
-                      <td className="px-6 py-4 align-middle">
+                      <td className="px-6 py-4 text-center align-middle">
                         {isCustomerPremiumForShop(customer._id) ? (
-                          <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                          <span className="flex items-center justify-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
                             <FaCrown className="h-3 w-3" />
                             Premium
                           </span>
@@ -358,29 +359,29 @@ const fetchShopPremiumCustomers = async () => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-center align-middle">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            className={`btn btn-xs min-w-[120px] px-3 py-1 text-xs ${
-                              isCustomerPremiumForShop(customer._id) ? 'btn-outline-warning' : 'btn-warning'
-                            }`}
-                            onClick={() => handlePremiumStatusUpdate(customer._id, !isCustomerPremiumForShop(customer._id))}
-                            disabled={updatingCustomers.has(customer._id)}
-                          >
-                            {updatingCustomers.has(customer._id) ? 'Updating...' : (isCustomerPremiumForShop(customer._id) ? 'Remove Premium' : 'Make Premium')}
-                          </button>
-                          <button 
-                            className="btn btn-secondary btn-xs min-w-[100px] px-3 py-1 text-xs"
-                            onClick={() => openModal(customer)}
-                          >
-                            View Details
-                          </button>
-                        </div>
+                        <button
+                          className={`btn btn-xs min-w-[120px] px-3 py-1 text-xs ${
+                            isCustomerPremiumForShop(customer._id) ? 'btn-outline-warning' : 'btn-warning'
+                          }`}
+                          onClick={() => handlePremiumStatusUpdate(customer._id, !isCustomerPremiumForShop(customer._id))}
+                          disabled={updatingCustomers.has(customer._id)}
+                        >
+                          {updatingCustomers.has(customer._id) ? 'Updating...' : (isCustomerPremiumForShop(customer._id) ? 'Remove Premium' : 'Make Premium')}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-center align-middle">
+                        <button 
+                          className="btn btn-secondary btn-xs min-w-[100px] px-3 py-1 text-xs"
+                          onClick={() => openModal(customer)}
+                        >
+                          View Details
+                        </button>
                       </td>
                     </tr>
                   ))}
                   {filteredCustomers.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="text-center py-8 text-gray-400">
+                      <td colSpan={5} className="text-center py-8 text-gray-400">
                         No customers found.
                       </td>
                     </tr>
