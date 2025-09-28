@@ -218,18 +218,18 @@ const AllCategoriesPage = () => {
             <table className="w-full table-fixed divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="w-16 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                  <th className="w-32 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="w-28 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shop</th>
+                  <th className="w-20 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                  <th className="w-36 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="w-32 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shop</th>
                   <th className="w-40 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description (EN)</th>
                   <th className="w-40 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description (AR)</th>
-                  <th className="w-24 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="w-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedCategories.map((category) => (
                   <tr key={category._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-3 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex-shrink-0 h-10 w-10">
                         <img 
                           src={category.image || '/default-image.png'} 
@@ -238,12 +238,12 @@ const AllCategoriesPage = () => {
                         />
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3">
                       <div className="text-sm font-medium text-gray-900 truncate" title={typeof category.name === 'object' ? (category.name?.en || category.name?.ar || 'N/A') : (category.name || 'N/A')}>
                         {typeof category.name === 'object' ? (category.name?.en || category.name?.ar || 'N/A') : (category.name || 'N/A')}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3">
                       <div className="text-sm text-gray-500 truncate" title={getShopName(category.shop)}>
                         {getShopName(category.shop)}
                       </div>

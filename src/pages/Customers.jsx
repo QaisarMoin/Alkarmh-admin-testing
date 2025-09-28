@@ -3,6 +3,8 @@ import * as api from '../utils/api';
 import { FaShoppingCart, FaHeart, FaCrown, FaUser } from "react-icons/fa";
 import { toast } from 'react-toastify';
 import { useAuth } from '../contexts/AuthContext';
+import SearchFilter from '../components/ui/SearchFilter';
+import PageHeader from '../components/ui/PageHeader';
 const Customers = () => {
 const { user: currentUser } = useAuth();
 const [shopPremiumCustomers, setShopPremiumCustomers] = useState([]);
@@ -14,9 +16,9 @@ const [isModalOpen, setIsModalOpen] = useState(false);
 const [productNames, setProductNames] = useState({});
 const [productsLoading, setProductsLoading] = useState(false);
 const [currentPage, setCurrentPage] = useState(1);
-const [searchTerm, setSearchTerm] = useState('');
-const [filterPremium, setFilterPremium] = useState('all'); // 'all', 'premium', 'regular'
-const [isUpdatingPremium, setIsUpdatingPremium] = useState(false);
+const [searchQuery, setSearchQuery] = useState('');
+const [selectedFilters, setSelectedFilters] = useState({});
+const [updatingCustomers, setUpdatingCustomers] = useState(new Set());
 const CUSTOMERS_PER_PAGE = 10;
 
   // Get current shop ID
@@ -57,6 +59,51 @@ const fetchShopPremiumCustomers = async () => {
         (typeof premiumCustomer === 'object' ? premiumCustomer._id : premiumCustomer) === customerId
     );
   };
+
+  // Get customer priority based on cart and favorites
+  const getCustomerPriority = (customer) => {
+    const hasCart = customer.cart && customer.cart.length > 0;
+    const hasFavorites = customer.favorites && customer.favorites.length > 0;
+    
+    if (hasCart && hasFavorites) return 1; // Cart + Fav (highest priority)
+    if (hasCart) return 2; // Cart only
+    if (hasFavorites) return 3; // Fav only
+    return 4; // Neither (lowest priority)
+  };
+
+  // Filter configuration for SearchFilter component
+  const filterConfig = [
+    {
+      name: 'status',
+      label: 'Status',
+      type: 'select',
+      options: [
+        { value: 'premium', label: 'Premium Only' },
+        { value: 'regular', label: 'Regular Only' }
+      ]
+    },
+    {
+      name: 'priority',
+      label: 'Priority',
+      type: 'select',
+      options: [
+        { value: 'cart-fav', label: 'Cart + Favorites' },
+        { value: 'cart', label: 'Cart Only' },
+        { value: 'fav', label: 'Favorites Only' },
+        { value: 'others', label: 'Others' }
+      ]
+    }
+  ];
+
+  // Handle search
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (filters) => {
+    setSelectedFilters(filters);
+  };
   
 
   // Fetch customers function
@@ -81,19 +128,39 @@ const fetchShopPremiumCustomers = async () => {
 
   }, []);
 
-  // Filter customers based on search and premium status
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.profile?.phone?.includes(searchTerm);
-    
-                         const isPremiumForShop = isCustomerPremiumForShop(customer._id);
-                         const matchesPremium = filterPremium === 'all' || 
-                                               (filterPremium === 'premium' && isPremiumForShop) ||
-                                               (filterPremium === 'regular' && !isPremiumForShop);
-    
-    return matchesSearch && matchesPremium;
-  });
+  // Filter and sort customers based on search, premium status, and priority
+  const filteredCustomers = customers
+    .filter(customer => {
+      // Search filter
+      const matchesSearch = !searchQuery || 
+        customer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        customer.profile?.phone?.includes(searchQuery);
+      
+      // Status filter
+      const isPremiumForShop = isCustomerPremiumForShop(customer._id);
+      const statusFilter = selectedFilters.status;
+      const matchesStatus = !statusFilter || 
+                           (statusFilter === 'premium' && isPremiumForShop) ||
+                           (statusFilter === 'regular' && !isPremiumForShop);
+      
+      // Priority filter
+      const priorityFilter = selectedFilters.priority;
+      const hasCart = customer.cart && customer.cart.length > 0;
+      const hasFavorites = customer.favorites && customer.favorites.length > 0;
+      
+      const matchesPriority = !priorityFilter || 
+                             (priorityFilter === 'cart-fav' && hasCart && hasFavorites) ||
+                             (priorityFilter === 'cart' && hasCart && !hasFavorites) ||
+                             (priorityFilter === 'fav' && hasFavorites && !hasCart) ||
+                             (priorityFilter === 'others' && !hasCart && !hasFavorites);
+      
+      return matchesSearch && matchesStatus && matchesPriority;
+    })
+    .sort((a, b) => {
+      // Sort by priority: lower number = higher priority
+      return getCustomerPriority(a) - getCustomerPriority(b);
+    });
 
   const totalPages = Math.ceil(filteredCustomers.length / CUSTOMERS_PER_PAGE);
   const paginatedCustomers = filteredCustomers.slice(
@@ -103,7 +170,7 @@ const fetchShopPremiumCustomers = async () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterPremium]);
+  }, [searchQuery, selectedFilters]);
 
   // Helper to get product ID from cart item
   const getCartProductId = (item) => item.product;
@@ -138,21 +205,24 @@ const fetchShopPremiumCustomers = async () => {
       return;
     }
   
-    setIsUpdatingPremium(true);
+    // Add customer to updating set
+    setUpdatingCustomers(prev => new Set([...prev, customerId]));
+    
     try {
       if (isPremium) {
         // Add customer as premium for this shop
         await api.post(`/api/auth/${shopId}/add-shop-premium-customer`, { customerId , shopId });
         toast.success('Customer upgraded to premium successfully!');
-        // Update local state
+        // Update local state - add customer ID
         setShopPremiumCustomers(prev => [...prev, customerId]);
       } else {
         // Remove customer from premium for this shop
         await api.post(`/api/auth/${shopId}/remove-shop-premium-customer`, { customerId , shopId });
         toast.success('Customer downgraded from premium successfully!');
-        // Update local state
-        setShopPremiumCustomers(prev => [...prev, customerId]);  // add
-
+        // Update local state - remove customer ID
+        setShopPremiumCustomers(prev => prev.filter(id => 
+          (typeof id === 'object' ? id._id : id) !== customerId
+        ));
       }
       
       // Update selected customer if modal is open
@@ -163,7 +233,12 @@ const fetchShopPremiumCustomers = async () => {
       toast.error('Failed to update premium status.');
       console.error('Premium status update error:', err);
     } finally {
-      setIsUpdatingPremium(false);
+      // Remove customer from updating set
+      setUpdatingCustomers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(customerId);
+        return newSet;
+      });
     }
   };
 
@@ -207,39 +282,24 @@ const fetchShopPremiumCustomers = async () => {
 
   return (
     <div className="w-full p-8 bg-white rounded-xl shadow-lg mt-8">
-      <div className="mb-6">
-        <div className="text-sm text-gray-400 mb-2 flex items-center gap-2">
-          <span>Dashboard</span>
-          <span className="mx-1">&gt;</span>
-          <span className="text-primary-700 font-semibold">Customers</span>
-        </div>
-        <h1 className="text-3xl font-bold mb-1 text-primary-900">Customer Management</h1>
-        <p className="text-lg text-gray-600 mb-4">Manage customers and premium memberships</p>
-      </div>
+      <PageHeader 
+        title="Customer Management"
+        subtitle="Manage customers and premium memberships"
+        breadcrumbs={[
+          { text: 'Dashboard', link: '/' },
+          { text: 'Customers' }
+        ]}
+      />
 
       {/* Search and Filter Controls */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder="Search customers by name, email, or phone..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="sm:w-48">
-          <select
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            value={filterPremium}
-            onChange={(e) => setFilterPremium(e.target.value)}
-          >
-            <option value="all">All Customers</option>
-            <option value="premium">Premium Only</option>
-            <option value="regular">Regular Only</option>
-          </select>
-
-        </div>
+      <div className="mb-6">
+        <SearchFilter
+          placeholder="Search customers by name, email, or phone..."
+          onSearch={handleSearch}
+          filters={filterConfig}
+          onFilterChange={handleFilterChange}
+          showFilterButton={true}
+        />
       </div>
 
       <div className="card p-0 bg-gray-50 border border-gray-200 rounded-lg shadow mb-8">
@@ -260,11 +320,10 @@ const fetchShopPremiumCustomers = async () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -285,56 +344,44 @@ const fetchShopPremiumCustomers = async () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 align-middle text-sm text-gray-900">
-                        {customer.email || 'Unknown Email'}
-                      </td>
-                      <td className="px-6 py-4 align-middle text-sm text-gray-900">
                         {customer.profile?.phone || 'Unknown Phone'}
                       </td>
-                      <td className="px-6 py-4 align-middle">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          customer.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {customer.isActive ? 'active' : 'not active'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 align-middle">
-                        <div className="flex items-center gap-2">
+                      <td className="px-6 py-4 text-center align-middle">
                         {isCustomerPremiumForShop(customer._id) ? (
-  <span className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-    <FaCrown className="h-3 w-3" />
-    Premium
-  </span>
-) : (
-  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
-    Regular
-  </span>
-)}
-                        </div>
+                          <span className="flex items-center justify-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                            <FaCrown className="h-3 w-3" />
+                            Premium
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                            Regular
+                          </span>
+                        )}
                       </td>
-                      <td className="px-6 py-4 align-middle">
-                        <div className="flex items-center gap-2">
-                          <button 
-                            className="btn btn-secondary btn-xs"
-                            onClick={() => openModal(customer)}
-                          >
-                            View Details
-                          </button>
-                          <button
-                            className={`btn btn-xs ${
-                              isCustomerPremiumForShop(customer._id) ? 'btn-outline-warning' : 'btn-warning'
-                            }`}
-                            onClick={() => handlePremiumStatusUpdate(customer._id, !isCustomerPremiumForShop(customer._id))}
-                            disabled={isUpdatingPremium}
-                          >
-                            {isUpdatingPremium ? 'Updating...' : (isCustomerPremiumForShop(customer._id) ? 'Remove Premium' : 'Make Premium')}
-                          </button>
-                        </div>
+                      <td className="px-6 py-4 text-center align-middle">
+                        <button
+                          className={`btn btn-xs min-w-[120px] px-3 py-1 text-xs ${
+                            isCustomerPremiumForShop(customer._id) ? 'btn-outline-warning' : 'btn-warning'
+                          }`}
+                          onClick={() => handlePremiumStatusUpdate(customer._id, !isCustomerPremiumForShop(customer._id))}
+                          disabled={updatingCustomers.has(customer._id)}
+                        >
+                          {updatingCustomers.has(customer._id) ? 'Updating...' : (isCustomerPremiumForShop(customer._id) ? 'Remove Premium' : 'Make Premium')}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-center align-middle">
+                        <button 
+                          className="btn btn-secondary btn-xs min-w-[100px] px-3 py-1 text-xs"
+                          onClick={() => openModal(customer)}
+                        >
+                          View Details
+                        </button>
                       </td>
                     </tr>
                   ))}
                   {filteredCustomers.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-gray-400">
+                      <td colSpan={5} className="text-center py-8 text-gray-400">
                         No customers found.
                       </td>
                     </tr>
@@ -432,9 +479,9 @@ const fetchShopPremiumCustomers = async () => {
                     selectedCustomer.isPremium ? 'btn-outline-warning' : 'btn-warning'
                   } flex items-center gap-2`}
                   onClick={() => handlePremiumStatusUpdate(selectedCustomer._id, !selectedCustomer.isPremium)}
-                  disabled={isUpdatingPremium}
+                  disabled={updatingCustomers.has(selectedCustomer._id)}
                 >
-                  {isUpdatingPremium ? (
+                  {updatingCustomers.has(selectedCustomer._id) ? (
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
@@ -442,7 +489,7 @@ const fetchShopPremiumCustomers = async () => {
                   ) : (
                     <FaCrown className="h-4 w-4" />
                   )}
-                  {isUpdatingPremium 
+                  {updatingCustomers.has(selectedCustomer._id) 
                     ? 'Updating...' 
                     : (selectedCustomer.isPremium ? 'Remove Premium' : 'Upgrade to Premium')
                   }

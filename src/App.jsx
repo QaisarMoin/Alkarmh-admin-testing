@@ -18,6 +18,9 @@ import CartPage from "./pages/cart/CartPage";
 import WishlistPage from "./pages/wishlist/WishlistPage";
 import Categories from "./pages/products/Categories";
 import SuperAdmin from "./pages/superadmin/SuperAdmin";
+import SuperAdminCustomers from "./pages/superadmin/SuperAdminCustomers";
+import SuperAdminShopAdmins from "./pages/superadmin/SuperAdminShopAdmins";
+import SuperAdminManagement from "./pages/superadmin/SuperAdminManagement";
 import AllProductsPage from "./pages/AllProductsPage";
 import AllCategoriesPage from "./pages/products/AllCategoriesPage";
 import AllOrdersPage from "./pages/orders/AllOrdersPage";
@@ -146,6 +149,30 @@ function App() {
             element={
               <ProtectedRoute requiredRole="super_admin">
                 <SuperAdmin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="superadmin/customers"
+            element={
+              <ProtectedRoute requiredRole="super_admin">
+                <SuperAdminCustomers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="superadmin/shop-admins"
+            element={
+              <ProtectedRoute requiredRole="super_admin">
+                <SuperAdminShopAdmins />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="superadmin/management"
+            element={
+              <ProtectedRoute requiredRole="super_admin">
+                <SuperAdminManagement />
               </ProtectedRoute>
             }
           />

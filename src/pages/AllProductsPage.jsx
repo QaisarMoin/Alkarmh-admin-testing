@@ -356,9 +356,9 @@ const AllProductsPage = () => {
               <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left">Product</th>
-                  <th className="px-4 py-3 text-left">Category</th>
+                  <th className="px-2 py-3 text-left">Category</th>
                   <th className="px-4 py-3 text-left">Shop</th>
-                  <th className="px-4 py-3 text-right">Price (QAR)</th>
+                  <th className="px-2 py-3 text-right">Price (QAR)</th>
                   <th className="px-4 py-3 text-center">Stock</th>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-center">Toggle Stock</th>
@@ -388,7 +388,7 @@ const AllProductsPage = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-500">
+                    <td className="px-2 py-4 text-sm text-gray-500">
                       {typeof product.category === 'object' && product.category !== null
                         ? (product.category?.name?.en || product.category?.name || product.category?._id || 'N/A')
                         : (product.category || 'N/A')}
@@ -398,7 +398,7 @@ const AllProductsPage = () => {
                         ? (product.shop?.name?.en || product.shop?.name || product.shop?._id || 'N/A')
                         : (product.shop || 'N/A')}
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900 text-right font-medium">
+                    <td className="px-2 py-4 text-sm text-gray-900 text-right font-medium">
                       {product.variants && product.variants[0] && typeof product.variants[0].price !== 'undefined' ? `${product.variants[0].price}` : 'N/A'}
                     </td>
                     <td className="px-4 py-4 text-sm text-center">
