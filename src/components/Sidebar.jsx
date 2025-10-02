@@ -150,11 +150,11 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         icon: <FiPackage className="w-5 h-5" />,
         path: '/orders'
       },
-     /* {
+     {
         name: 'Customers',
         icon: <FiUsers className="w-5 h-5" />,
         path: '/customers'
-      }, */
+      },
       {
         name: 'Settings',
         icon: <FiSettings className="w-5 h-5" />,

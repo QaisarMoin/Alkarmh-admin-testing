@@ -231,8 +231,24 @@ const SuperAdminShopAdmins = () => {
     try {
       if (selectedUser.role === 'shop_admin' && selectedUser.managedShops && selectedUser.managedShops.length > 0) {
         const shopId = typeof selectedUser.managedShops[0] === 'object' && selectedUser.managedShops[0]._id ? selectedUser.managedShops[0]._id : selectedUser.managedShops[0];
-        const updateData = { status: editUser.status };
-        await api.put(`/api/shops/${shopId}`, updateData);
+        
+        if (!shopId) {
+          toast.error('Shop ID not found. Cannot update status.');
+          return;
+        }
+        
+        // Try alternative endpoint structure
+        const updateData = { 
+          status: editUser.status 
+        };
+        
+        // First try the specific status endpoint
+        try {
+          await api.put(`/api/shops/${shopId}/status`, updateData);
+        } catch (statusError) {
+          // Fallback to general shop update with different structure
+          await api.patch(`/api/shops/${shopId}`, updateData);
+        }
         toast.success('Shop status updated successfully!');
         await fetchUsers();
       }
@@ -251,9 +267,23 @@ const SuperAdminShopAdmins = () => {
     setIsUpdatingRating(true);
     try {
       const shopId = typeof selectedUser.managedShops[0] === 'object' && selectedUser.managedShops[0]._id ? selectedUser.managedShops[0]._id : selectedUser.managedShops[0];
-      await api.put(`/api/shops/${shopId}`, {
-        statistics: { ...shopInfo.statistics, rating: shopRating }
-      });
+      
+      if (!shopId) {
+        toast.error('Shop ID not found. Cannot update rating.');
+        return;
+      }
+      
+      // Try alternative endpoint structure for rating
+      try {
+        await api.put(`/api/shops/${shopId}/rating`, {
+          rating: shopRating
+        });
+      } catch (ratingError) {
+        // Fallback to general shop update
+        await api.patch(`/api/shops/${shopId}`, {
+          statistics: { ...shopInfo.statistics, rating: shopRating }
+        });
+      }
       toast.success('Shop rating updated successfully!');
       setShopInfo(prev => ({ ...prev, statistics: { ...prev?.statistics, rating: shopRating } }));
     } catch (error) {
@@ -270,9 +300,23 @@ const SuperAdminShopAdmins = () => {
     setIsUpdatingTags(true);
     try {
       const shopId = typeof selectedUser.managedShops[0] === 'object' && selectedUser.managedShops[0]._id ? selectedUser.managedShops[0]._id : selectedUser.managedShops[0];
-      await api.put(`/api/shops/${shopId}`, {
-        tags: shopTags
-      });
+      
+      if (!shopId) {
+        toast.error('Shop ID not found. Cannot update tags.');
+        return;
+      }
+      
+      // Try alternative endpoint structure for tags
+      try {
+        await api.put(`/api/shops/${shopId}/tags`, {
+          tags: shopTags
+        });
+      } catch (tagsError) {
+        // Fallback to general shop update
+        await api.patch(`/api/shops/${shopId}`, {
+          tags: shopTags
+        });
+      }
       toast.success('Shop tags updated successfully!');
       setShopInfo(prev => ({ ...prev, tags: shopTags }));
     } catch (error) {
