@@ -12,18 +12,25 @@ export const WishlistProvider = ({ children }) => {
 
   const fetchWishlist = useCallback(async () => {
     if (!isAuthenticated || !user?._id) {
-      // setWishlistItems([]); // Clear wishlist if not authenticated
+      setWishlistItems([]);
       return;
     }
     setIsLoadingWishlist(true);
     setErrorWishlist(null);
     try {
       // Backend returns the wishlist document which has an 'products' array of populated product objects
-      const wishlistData = await api.get(`/wishlist?userId=${user._id}`);
+      const wishlistData = await api.get(`/api/wishlist?userId=${user._id}`);
       setWishlistItems(wishlistData?.products || []); 
     } catch (err) {
       console.error('Failed to fetch wishlist:', err);
-      setErrorWishlist(err.response?.data?.message || 'Failed to fetch wishlist.');
+      
+      // Handle 404 as empty wishlist (wishlist doesn't exist yet)
+      if (err.response?.status === 404) {
+        setWishlistItems([]);
+        setErrorWishlist(null); // Don't show error for non-existent wishlist
+      } else {
+        setErrorWishlist(err.response?.data?.message || 'Failed to fetch wishlist.');
+      }
     } finally {
       setIsLoadingWishlist(false);
     }

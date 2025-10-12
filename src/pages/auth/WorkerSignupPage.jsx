@@ -9,6 +9,7 @@ const WorkerSignupPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     shopName: '',
   });
@@ -25,7 +26,7 @@ const WorkerSignupPage = () => {
     e.preventDefault();
     setFormError('');
     
-    if (!formData.name || !formData.email || !formData.password || !formData.shopName) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.shopName) {
       setFormError('Please fill in all fields.');
       return;
     }
@@ -35,15 +36,42 @@ const WorkerSignupPage = () => {
       return;
     }
 
+    // Basic phone number validation
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setFormError('Please enter a valid phone number (minimum 10 digits).');
+      return;
+    }
+
     setIsLoading(true);
     try {
+      console.log('Attempting worker signup with data:', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        shopName: formData.shopName,
+        // Don't log password for security
+      });
+      
       const response = await api.post('/api/auth/worker-signup', formData);
+      console.log('Worker signup successful:', response);
       toast.success('Worker registered successfully! Please log in.');
       navigate('/login');
     } catch (err) {
+      console.error('Worker signup error:', err);
+      console.error('Error response:', err.response);
+      
       const errorMessage = err?.response?.data?.message || 'Registration failed. Please try again.';
-      setFormError(errorMessage);
-      toast.error(errorMessage);
+      
+      // Provide specific guidance for "User already exists" error
+      if (errorMessage.toLowerCase().includes('user already exists') || errorMessage.toLowerCase().includes('already exists')) {
+        const detailedError = `A user with email "${formData.email}" already exists. Please try logging in instead, or use a different email address.`;
+        setFormError(detailedError);
+        toast.error(detailedError);
+      } else {
+        setFormError(errorMessage);
+        toast.error(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -101,6 +129,23 @@ const WorkerSignupPage = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="you@example.com"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+              Phone Number
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              required
+              className="form-input mt-1"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="+1 (555) 123-4567"
             />
           </div>
 

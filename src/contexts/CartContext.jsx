@@ -13,20 +13,25 @@ export const CartProvider = ({ children }) => {
   const fetchCart = useCallback(async () => {
     if (!isAuthenticated || !user?._id) {
       // Only fetch if authenticated and user ID is available
-      // Optionally clear cart if not authenticated
-      // setCartItems([]); 
+      setCartItems([]);
       return;
     }
     setIsLoadingCart(true);
     setErrorCart(null);
     try {
       // Assuming the API returns the full cart document which has an 'items' array
-      const cartData = await api.get(`/cart?userId=${user._id}`);
+      const cartData = await api.get(`/api/cart?userId=${user._id}`);
       setCartItems(cartData?.items || []); // Backend returns the cart object with an items array
     } catch (err) {
       console.error('Failed to fetch cart:', err);
-      setErrorCart(err.response?.data?.message || 'Failed to fetch cart.');
-      // Don't clear cart items on error, maybe it's a temporary issue
+      
+      // Handle 404 as empty cart (cart doesn't exist yet)
+      if (err.response?.status === 404) {
+        setCartItems([]);
+        setErrorCart(null); // Don't show error for non-existent cart
+      } else {
+        setErrorCart(err.response?.data?.message || 'Failed to fetch cart.');
+      }
     } finally {
       setIsLoadingCart(false);
     }

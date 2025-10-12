@@ -11,6 +11,7 @@ const SignupPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
   });
   const [formError, setFormError] = useState('');
@@ -30,12 +31,18 @@ const SignupPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
-    if (!formData.name || !formData.email || !formData.password) {
+    if (!formData.name || !formData.email || !formData.phone || !formData.password) {
       setFormError('Please fill in all fields.');
       return;
     }
     if (formData.password.length < 6) {
       setFormError('Password must be at least 6 characters long.');
+      return;
+    }
+    // Basic phone number validation
+    const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setFormError('Please enter a valid phone number (minimum 10 digits).');
       return;
     }
     try {
@@ -81,13 +88,32 @@ const SignupPage = () => {
       }
 
       // Now complete the signup (create user in your DB)
+      console.log('Attempting signup with data:', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        // Don't log password for security
+      });
+      
       await signup(formData);
       toast.success('Signup successful! Please log in.');
       navigate('/login');
     } catch (err) {
+      console.error('Signup error:', err);
+      console.error('Error response:', err.response);
+      
       const backendMsg = err?.response?.data?.message;
-      setOtpError(backendMsg || 'OTP verification failed.');
-      toast.error(backendMsg || 'OTP verification failed.');
+      
+      // Handle "User already exists" specifically
+      if (backendMsg && (backendMsg.toLowerCase().includes('user already exists') || backendMsg.toLowerCase().includes('already exists'))) {
+        const detailedError = `A user with email "${formData.email}" already exists. Please try logging in instead, or use a different email address.`;
+        setOtpError(detailedError);
+        toast.error(detailedError);
+      } else {
+        setOtpError(backendMsg || 'OTP verification failed.');
+        toast.error(backendMsg || 'OTP verification failed.');
+      }
+      
       // If OTP is expired, too many attempts, or not found, prompt to resend
       if (
         backendMsg === 'No OTP sent to this email' ||
@@ -127,6 +153,10 @@ const SignupPage = () => {
           <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
               <input id="email" name="email" type="email" autoComplete="email" required className="form-input mt-1" value={formData.email} onChange={handleChange} placeholder="you@example.com" />
+          </div>
+          <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone number</label>
+              <input id="phone" name="phone" type="tel" autoComplete="tel" required className="form-input mt-1" value={formData.phone} onChange={handleChange} placeholder="+1 (555) 123-4567" />
           </div>
           <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
