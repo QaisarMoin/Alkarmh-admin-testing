@@ -122,6 +122,35 @@ const Settings = () => {
         }
         
         setShop({ ...initialState, ...shopData });
+        
+        // Check if user has a shop but is still a customer - upgrade them to shop_admin
+        if (currentUser.role === 'customer' && shopData._id) {
+          const updatedUser = {
+            ...currentUser,
+            role: 'shop_admin',
+            managedShops: [...(currentUser.managedShops || []), shopData._id]
+          };
+          
+          try {
+            await api.put(`/api/auth/user/${currentUser._id}`, { 
+              role: 'shop_admin',
+              managedShops: updatedUser.managedShops
+            });
+            
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            if (refreshUser) await refreshUser();
+            
+            toast.success('Welcome back! You have been automatically upgraded to Shop Admin status.');
+            
+            // Force page reload to ensure all components recognize the new role
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          } catch (roleUpdateError) {
+            console.error('Failed to auto-upgrade user role:', roleUpdateError);
+          }
+        }
       } else {
         setShop(initialState);
       }
@@ -274,26 +303,67 @@ const Settings = () => {
       await fetchShop();
       // Manually update user context and localStorage to include the shop ID
       if (newShop && newShop._id) {
-        setUser(prev => ({
-          ...prev,
-          managedShops: [...(prev.managedShops || []), newShop._id]
-        }));
-        localStorage.setItem('user', JSON.stringify({
+        // Update user role to shop_admin and add managedShops
+        const updatedUser = {
           ...currentUser,
+          role: 'shop_admin',
           managedShops: [...(currentUser.managedShops || []), newShop._id]
-        }));
+        };
+        
+        // Update the user role in the backend
+        try {
+          await api.put(`/api/auth/user/${currentUser._id}`, { 
+            role: 'shop_admin',
+            managedShops: [...(currentUser.managedShops || []), newShop._id]
+          });
+          toast.success('You have been upgraded to Shop Admin! You now have access to all shop management features.');
+        } catch (roleUpdateError) {
+          console.error('Failed to update user role:', roleUpdateError);
+          // Still proceed with local updates even if backend fails
+          toast.warning('Shop created successfully, but role update may need manual refresh.');
+        }
+        
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         if (refreshUser) await refreshUser();
+        
+        // Force page reload to ensure all components recognize the new role
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       }
       if (shop._id && !(currentUser.managedShops || []).includes(shop._id)) {
-        setUser(prev => ({
-          ...prev,
-          managedShops: [...(prev.managedShops || []), shop._id]
-        }));
-        localStorage.setItem('user', JSON.stringify({
+        // Update user role to shop_admin if they have a shop but are still a customer
+        const updatedUser = {
           ...currentUser,
+          role: 'shop_admin',
           managedShops: [...(currentUser.managedShops || []), shop._id]
-        }));
+        };
+        
+        // Update the user role in the backend
+        try {
+          await api.put(`/api/auth/user/${currentUser._id}`, { 
+            role: 'shop_admin',
+            managedShops: [...(currentUser.managedShops || []), shop._id]
+          });
+          if (currentUser.role === 'customer') {
+            toast.success('You have been upgraded to Shop Admin! You now have access to all shop management features.');
+          }
+        } catch (roleUpdateError) {
+          console.error('Failed to update user role:', roleUpdateError);
+          toast.warning('Shop updated successfully, but role update may need manual refresh.');
+        }
+        
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         if (refreshUser) await refreshUser();
+        
+        // Force page reload if role changed from customer to shop_admin
+        if (currentUser.role === 'customer') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save shop');

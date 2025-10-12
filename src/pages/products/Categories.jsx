@@ -6,6 +6,7 @@ import  {useAuth} from "../../contexts/AuthContext"
 import EditCategoryModal from '../../components/EditCategoryModal';
 import { debounce } from 'lodash';
 import { CategoryEventContext } from '../../components/Sidebar';
+import { toast } from 'react-toastify';
 
 const Categories = () => {
   const [search, setSearch] = useState('');
@@ -241,16 +242,36 @@ const Categories = () => {
         notifyCategoryCreated();
         // Update user role to shop_admin immediately after category creation
         if (currentUser?.role !== "shop_admin") {
-          setUser(prev => ({
-            ...prev,
-            role: "shop_admin"
-          }));
-          localStorage.setItem('user', JSON.stringify({
-            ...currentUser,
-            role: "shop_admin"
-          }));
-          if (typeof refreshUser === 'function') {
-            refreshUser();
+          try {
+            // Update role in backend
+            await api.put(`/api/auth/user/${currentUser._id}`, { 
+              role: 'shop_admin'
+            });
+            
+            const updatedUser = {
+              ...currentUser,
+              role: "shop_admin"
+            };
+            
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            if (typeof refreshUser === 'function') {
+              refreshUser();
+            }
+            
+            toast.success('You have been upgraded to Shop Admin! You now have access to all shop management features.');
+          } catch (roleError) {
+            console.error('Failed to update user role:', roleError);
+            // Still update locally even if backend fails
+            setUser(prev => ({
+              ...prev,
+              role: "shop_admin"
+            }));
+            localStorage.setItem('user', JSON.stringify({
+              ...currentUser,
+              role: "shop_admin"
+            }));
           }
         }
         setIsAddModalOpen(false);

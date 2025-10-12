@@ -125,6 +125,40 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Function to check and update user role based on their shops
+  const checkAndUpdateUserRole = async () => {
+    if (!user?._id || user.role !== 'customer') return;
+    
+    try {
+      // Check if customer has any shops
+      const shopsRes = await api.get(`/api/shops/user/${user._id}`);
+      if (shopsRes && shopsRes.data && Array.isArray(shopsRes.data) && shopsRes.data.length > 0) {
+        const shopData = shopsRes.data[0];
+        
+        // If customer has a shop but is still a customer, upgrade them
+        const updatedUser = {
+          ...user,
+          role: 'shop_admin',
+          managedShops: [...(user.managedShops || []), shopData._id]
+        };
+        
+        // Update the user role in the backend
+        await api.put(`/api/auth/user/${user._id}`, { 
+          role: 'shop_admin',
+          managedShops: updatedUser.managedShops
+        });
+        
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        return true; // Role was updated
+      }
+    } catch (err) {
+      console.error('Failed to check/update user role:', err);
+    }
+    return false; // No role update needed
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -138,7 +172,8 @@ export const AuthProvider = ({ children }) => {
       changePassword, // Added changePassword
       setError, // Expose setError to allow clearing errors from components
       setUser, // Expose setUser for manual updates
-      refreshUser // Expose refreshUser for forced updates
+      refreshUser, // Expose refreshUser for forced updates
+      checkAndUpdateUserRole // Expose checkAndUpdateUserRole for role checking
     }}>
       {children}
     </AuthContext.Provider>

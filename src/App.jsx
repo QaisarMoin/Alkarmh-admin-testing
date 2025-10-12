@@ -1,6 +1,7 @@
 // src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
+import { useEffect } from "react";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -28,7 +29,27 @@ import Workers from "./pages/Workers";
 import Customers from "./pages/Customers";
 
 function App() {
-  const { user } = useAuth();
+  const { user, checkAndUpdateUserRole, isAuthenticated } = useAuth();
+  
+  // Check and update user role when app loads
+  useEffect(() => {
+    const checkRole = async () => {
+      if (isAuthenticated && user && user.role === 'customer') {
+        console.log('App.jsx - Checking role for customer:', user);
+        const roleUpdated = await checkAndUpdateUserRole();
+        if (roleUpdated) {
+          console.log('App.jsx - Role was updated, reloading page');
+          // Role was updated, reload the page to reflect changes
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        }
+      }
+    };
+    
+    checkRole();
+  }, [isAuthenticated, user, checkAndUpdateUserRole]);
+
   return (
     <Routes>
       {/* Public Routes */}

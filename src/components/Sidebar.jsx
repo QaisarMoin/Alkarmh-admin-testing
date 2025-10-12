@@ -29,10 +29,11 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
   const { user: currentUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [hasCategory, setHasCategory] = useState(false);
-  const { categoryEvent, categoryCreatedThisSession } = useContext(CategoryEventContext) || {};
 
   const userReady = !!(currentUser && currentUser._id && currentUser.managedShops && currentUser.managedShops.length > 0);
+
+  // Debug log to check user role
+  console.log('Sidebar - Current user role:', currentUser?.role, 'User:', currentUser);
 
   // Responsive handler
   useEffect(() => {
@@ -49,22 +50,6 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Fetch categories for the user's shop (for customers only)
-  useEffect(() => {
-    if (!userReady) return; // Don't fetch until user context is ready
-    const fetchCategories = async () => {
-      try {
-        const res = await api.get(`/api/categories?shop=${currentUser.managedShops[0]?._id || currentUser.managedShops[0]}`);
-        const categories = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
-        const userCategories = categories.filter(cat => cat.createdBy === currentUser._id);
-        setHasCategory(userCategories.length > 0);
-      } catch {
-        setHasCategory(false);
-      }
-    };
-    fetchCategories();
-  }, [userReady, currentUser]);
 
   // Hamburger toggle
   const handleHamburger = () => setIsOpen((prev) => !prev);
@@ -101,13 +86,6 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
     isOpen ? 'w-64' : 'w-0 lg:w-16'
   } ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}`;
 
-  // Determine if customer and has no shop
-  const isCustomerNoShop = currentUser?.role === 'customer' && (!currentUser.managedShops || currentUser.managedShops.length === 0);
-  // Determine if customer with shop but no category (and not created in this session)
-  const isCustomerShopNoCategory = currentUser?.role === 'customer' && currentUser.managedShops && currentUser.managedShops.length > 0 && !hasCategory && !categoryCreatedThisSession;
-  // If a category was created in this session, treat as hasCategory for unlock logic
-  const unlockAllTabs = hasCategory || categoryCreatedThisSession;
-
   let menuItems = [];
   
   // Menu items based on user role
@@ -121,8 +99,17 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         exact: true
       }
     ];
-  } else if (!currentUser || currentUser.role !== 'super_admin') {
-    // Shop admin and other non-super admin users
+  } else if (currentUser?.role === 'customer') {
+    // Customers only see Settings (until they register a shop and get upgraded to shop_admin)
+    menuItems = [
+      {
+        name: 'Settings',
+        icon: <FiSettings className="w-5 h-5" />,
+        path: '/settings'
+      }
+    ];
+  } else if (currentUser?.role === 'shop_admin') {
+    // Shop admins get full access to shop management features
     menuItems = [
       {
         name: 'Dashboard',
@@ -150,24 +137,21 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
         icon: <FiPackage className="w-5 h-5" />,
         path: '/orders'
       },
-     {
+      {
         name: 'Customers',
         icon: <FiUsers className="w-5 h-5" />,
         path: '/customers'
       },
       {
-        name: 'Settings',
-        icon: <FiSettings className="w-5 h-5" />,
-        path: '/settings'
-      },
-
-      // Add Workers tab for shop admins
-      ...(currentUser?.role === 'shop_admin' ? [{
         name: 'Workers',
         icon: <FiUsers className="w-5 h-5" />, 
         path: '/workers'
-      }] : [])
-      
+      },
+      {
+        name: 'Settings',
+        icon: <FiSettings className="w-5 h-5" />,
+        path: '/settings'
+      }
     ];
   }
 
@@ -251,79 +235,23 @@ const Sidebar = ({ isOpen: isOpenProp, isMobile: isMobileProp }) => {
           <nav className="flex-1 overflow-y-auto py-4">
             <ul className="space-y-0.5">
               {sidebarItems.map((item, index) => {
-                // For super_admin, never lock any tab
-                if (currentUser?.role === 'super_admin') {
-                  return (
-                    <li key={index}>
-                      <NavLink
-                        to={item.path}
-                        {...(item.name === 'All Products' ? { end: true } : {})}
-                        className={({ isActive }) =>
-                          `flex items-center px-4 py-2.5 transition-colors duration-200 hover:bg-gray-100 ${
-                            isActive ? 'text-primary-600 font-medium' : 'text-gray-700'
-                          }`
-                        }
-                        onClick={() => isMobile && setIsOpen(false)}
-                      >
-                        {item.icon}
-                        {isOpen && <span className="ml-3">{item.name}</span>}
-                      </NavLink>
-                    </li>
-                  );
-                }
-                
-                // For workers, show all tabs but without read-only indicator
-                if (currentUser?.role === 'worker') {
-                  return (
-                    <li key={index}>
-                      <NavLink
-                        to={item.path}
-                        {...(item.name === 'All Products' ? { end: true } : {})}
-                        className={({ isActive }) =>
-                          `flex items-center px-4 py-2.5 transition-colors duration-200 hover:bg-gray-100 ${
-                            isActive ? 'text-primary-600 font-medium' : 'text-gray-700'
-                          }`
-                        }
-                        onClick={() => isMobile && setIsOpen(false)}
-                      >
-                        {item.icon}
-                        {isOpen && <span className="ml-3">{item.name}</span>}
-                      </NavLink>
-                    </li>
-                  );
-                }
-                // For shop_admin and customer, apply lock logic
-                let isLocked = false;
-                if (isCustomerNoShop && !['Settings', 'Help'].includes(item.name)) {
-                  isLocked = true;
-                } else if (!unlockAllTabs && !['Categories', 'Settings', 'Help'].includes(item.name)) {
-                  isLocked = true;
-                }
+                // For all roles, show menu items without locking
+                // since we've already filtered them by role above
                 return (
                   <li key={index}>
-                    {isLocked ? (
-                      <div
-                        className="flex items-center px-4 py-2.5 text-gray-400 cursor-not-allowed opacity-60"
-                        title={isCustomerNoShop ? "Please register your shop to access this section" : "Please create a category to access this section"}
-                      >
-                        {item.icon}
-                        {isOpen && <span className="ml-3">{item.name}</span>}
-                      </div>
-                    ) : (
-                      <NavLink
-                        to={item.path}
-                        {...(item.name === 'All Products' ? { end: true } : {})}
-                        className={({ isActive }) =>
-                          `flex items-center px-4 py-2.5 transition-colors duration-200 hover:bg-gray-100 ${
-                            isActive ? 'text-primary-600 font-medium' : 'text-gray-700'
-                          }`
-                        }
-                        onClick={() => isMobile && setIsOpen(false)}
-                      >
-                        {item.icon}
-                        {isOpen && <span className="ml-3">{item.name}</span>}
-                      </NavLink>
-                    )}
+                    <NavLink
+                      to={item.path}
+                      {...(item.name === 'All Products' ? { end: true } : {})}
+                      className={({ isActive }) =>
+                        `flex items-center px-4 py-2.5 transition-colors duration-200 hover:bg-gray-100 ${
+                          isActive ? 'text-primary-600 font-medium' : 'text-gray-700'
+                        }`
+                      }
+                      onClick={() => isMobile && setIsOpen(false)}
+                    >
+                      {item.icon}
+                      {isOpen && <span className="ml-3">{item.name}</span>}
+                    </NavLink>
                   </li>
                 );
               })}
