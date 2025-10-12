@@ -59,11 +59,19 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
+      console.log('AuthContext signup attempt for:', userData.email);
       const response = await api.post('/api/auth/signup', userData);
+      console.log('AuthContext signup successful:', response);
       // Does not auto-login as per requirements
       return response;
     } catch (err) {
       console.error('Signup failed:', err);
+      console.error('Error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message
+      });
       const errorMessage = err.response?.data?.message || 'Signup failed. Please try again.';
       setError(errorMessage);
       throw new Error(errorMessage);

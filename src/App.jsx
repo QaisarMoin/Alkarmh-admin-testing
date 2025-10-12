@@ -123,12 +123,12 @@ function App() {
             />
           )}
 
-          {/* Settings - Only for shop admins */}
+          {/* Settings - For customers (to register shop) and shop admins */}
           {user?.role !== 'worker' && (
             <Route
               path="settings"
               element={
-                <ProtectedRoute requiredRole="shop_admin">
+                <ProtectedRoute requiredRoles={["customer", "shop_admin"]}>
                   <Settings />
                 </ProtectedRoute>
               }

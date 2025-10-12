@@ -54,6 +54,10 @@ const Settings = () => {
   const [shop, setShop] = useState(initialState);
   const [loading, setLoading] = useState(false);
   
+  // Check if user has a shop and their role
+  const hasShop = currentUser?.managedShops && currentUser.managedShops.length > 0;
+  const isCustomer = currentUser?.role === 'customer';
+  
   // Add preview state for logo and banner
   const [logoPreview, setLogoPreview] = useState('');
   const [bannerPreview, setBannerPreview] = useState('');
@@ -637,6 +641,24 @@ const Settings = () => {
           <FiSave className="mr-2 h-5 w-5" />
           {loading ? 'Saving...' : shop._id ? 'Update Shop' : 'Register Shop'}
         </button>
+        
+        {/* Note for customers about shop registration */}
+        {isCustomer && !hasShop && (
+          <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start space-x-3">
+              <div className="text-yellow-600 text-xl">💡</div>
+              <div>
+                <h4 className="font-semibold text-yellow-900 mb-2">What happens after registration?</h4>
+                <ul className="text-sm text-yellow-800 space-y-1">
+                  <li>• Your shop will be created and assigned to your account</li>
+                  <li>• You'll be upgraded to <strong>Shop Admin</strong> status automatically</li>
+                  <li>• You'll gain access to all product and order management features</li>
+                  <li>• You can start adding products and categories immediately</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
 
       {/* Change Password Form */}
