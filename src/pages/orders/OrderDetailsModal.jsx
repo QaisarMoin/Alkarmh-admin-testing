@@ -156,7 +156,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                 </div>
                 <div className="flex items-center gap-3 mb-1">
                   <FiUser className="text-blue-500" />
-                  <span className="font-medium ">{userData?.name || 'N/A'}</span>
+                  <span className="font-medium ">{ order.deliveryAddress?.name || userData?.name || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-3 mb-1">
                   <FiMail className="text-blue-500" />
@@ -164,6 +164,7 @@ const OrderDetailsModal = ({ orderId, onClose, onStatusUpdated }) => {
                 </div>
                 <div className="flex items-center gap-3 mb-1">
                   <FiMapPin className="text-blue-500" />
+                 {/* <span>{order.deliveryAddress.name || 'N/A'}</span> */}
                   <span>{order.deliveryAddress?.street || 'N/A'}</span>
                   {order.deliveryAddress?.latitude && order.deliveryAddress?.longitude && (
                     <a
