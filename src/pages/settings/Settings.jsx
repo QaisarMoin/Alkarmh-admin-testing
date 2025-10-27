@@ -38,6 +38,10 @@ const initialState = {
     deliveryRadius: 10, // Legacy field, kept for backward compatibility
     minimumOrderAmount: 0, // Legacy field, kept for backward compatibility
     deliveryFee: 0, // Legacy field, kept for backward compatibility
+    deliveryAddressConfiguration: [{
+      city: '',
+      deliveryFee: 0,
+    }],
     deliveryConfigurations: [
       {
         deliveryRadius: 10,
@@ -63,6 +67,10 @@ const Settings = () => {
   const [bannerPreview, setBannerPreview] = useState('');
   const logoInputRef = useRef();
   const bannerInputRef = useRef();
+
+  // State for cities fetched from API
+  const [cities, setCities] = useState([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
 
   // Handle image file selection and preview
   const handleImageChange = (e, type) => {
@@ -120,6 +128,14 @@ const Settings = () => {
             deliveryFee: shopData.settings.deliveryFee || 0
           }];
         }
+
+        // Handle backward compatibility for deliveryAddressConfiguration
+        if (!shopData.settings.deliveryAddressConfiguration) {
+          shopData.settings.deliveryAddressConfiguration = [{
+            city: '',
+            deliveryFee: 0
+          }];
+        }
         
         setShop({ ...initialState, ...shopData });
         
@@ -163,6 +179,11 @@ const Settings = () => {
     fetchShop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
+
+  // Fetch cities on mount
+  useEffect(() => {
+    fetchCities();
+  }, []);
 
   // State for Change Password form
   const [passwordData, setPasswordData] = useState({
@@ -260,6 +281,74 @@ const Settings = () => {
         settings: {
           ...prev.settings,
           deliveryConfigurations: updatedConfigurations
+        }
+      };
+    });
+  };
+
+  // Fetch cities from API
+  const fetchCities = async () => {
+    setCitiesLoading(true);
+    try {
+      const res = await api.get('/api/cities');
+      // API returns { success, message, data: [...] }
+      const cityList = res?.data || res || [];
+      setCities(Array.isArray(cityList) ? cityList : []);
+    } catch (err) {
+      console.error('Failed to fetch cities:', err);
+      toast.error('Failed to load cities');
+    } finally {
+      setCitiesLoading(false);
+    }
+  };
+
+  // Function to add a new delivery address configuration
+  const addDeliveryAddressConfiguration = () => {
+    setShop(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        deliveryAddressConfiguration: [
+          ...prev.settings.deliveryAddressConfiguration,
+          {
+            city: '',
+            deliveryFee: 0,
+          }
+        ]
+      }
+    }));
+  };
+
+  // Function to remove a delivery address configuration
+  const removeDeliveryAddressConfiguration = (index) => {
+    if (shop.settings.deliveryAddressConfiguration.length <= 1) {
+      toast.warning("You must have at least one delivery address configuration");
+      return;
+    }
+    
+    setShop(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        deliveryAddressConfiguration: prev.settings.deliveryAddressConfiguration.filter((_, i) => i !== index)
+      }
+    }));
+  };
+
+  // Function to update a delivery address configuration
+  const updateDeliveryAddressConfiguration = (index, field, value) => {
+    setShop(prev => {
+      const updatedConfigurations = [...prev.settings.deliveryAddressConfiguration];
+      updatedConfigurations[index] = {
+        ...updatedConfigurations[index],
+        [field]: field === 'deliveryFee' ? Number(value) : value
+      };
+      
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          deliveryAddressConfiguration: updatedConfigurations
         }
       };
     });
@@ -669,6 +758,61 @@ const Settings = () => {
               ...s,
               settings: { ...s.settings, deliveryFee: Number(e.target.value) }
             }))} />
+          </div>
+
+          {/* Delivery Address Configuration */}
+          <div className="mb-4 mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-primary-700">Delivery Address Configuration</h3>
+              <button
+                type="button"
+                onClick={addDeliveryAddressConfiguration}
+                className="inline-flex items-center px-3 py-1 border border-primary-500 text-primary-600 rounded-md hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <FiPlus className="mr-1" /> Add City Configuration
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {shop.settings.deliveryAddressConfiguration.map((config, index) => (
+                <div key={index} className="flex flex-wrap items-end gap-4 p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">City:</label>
+                    <select
+                      value={config.city}
+                      onChange={e => updateDeliveryAddressConfiguration(index, 'city', e.target.value)}
+                      className="form-input w-full rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                      disabled={citiesLoading}
+                    >
+                      <option value="">Select a city</option>
+                      {cities.map((city, idx) => (
+                        <option key={city._id || idx} value={city.name?.en || city.name?.ar || city.name || ''}>
+                          {city.name?.en || city.name?.ar || city.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Fee:</label>
+                    <input
+                      type="number"
+                      value={config.deliveryFee}
+                      onChange={e => updateDeliveryAddressConfiguration(index, 'deliveryFee', e.target.value)}
+                      className="form-input w-32 rounded border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeDeliveryAddressConfiguration(index)}
+                    className="inline-flex items-center px-2 py-1 border border-red-300 text-red-600 rounded-md hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mb-1"
+                  >
+                    <FiTrash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         <div className="mt-8">
